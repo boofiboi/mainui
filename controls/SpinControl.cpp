@@ -127,19 +127,18 @@ void CMenuSpinControl::Draw( void )
 	Size scCenterBox;
 	uint textflags = ( iFlags & QMF_DROPSHADOW ) ? ETF_SHADOW : 0;
 
+	#if !HELP_TEXT_ONLY_BOTTOM
 	if( szStatusText && iFlags & QMF_NOTIFY )
 	{
 		Point coord;
-
 		coord.x = m_scPos.x + m_scSize.w + 16 * uiStatic.scaleX;
 		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
-
 		int	r, g, b;
-
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b );
 		EngFuncs::DrawConsoleString( coord, szStatusText );
 	}
+#endif
 
 	int textHeight = m_scPos.y - (m_scChSize * 1.5f);
 	UI_DrawString( font, m_scPos.x - UI_OUTLINE_WIDTH, textHeight, m_scSize.w + UI_OUTLINE_WIDTH * 2, m_scChSize, szName, uiColorHelp, m_scChSize, QM_LEFT, textflags | ETF_FORCECOL | ETF_NOSIZELIMIT );

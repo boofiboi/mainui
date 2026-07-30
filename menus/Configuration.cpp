@@ -67,6 +67,7 @@ void CMenuOptions::_Init( void )
 		PC_GAMEPAD, UI_GamePad_Menu, QMF_NOTIFY, 'g' );
 	AddButton( L( "Update" ), L( "Check for updates" ),
 		PC_UPDATE, msgBox.MakeOpenEvent(), QMF_NOTIFY );
+#endif
 	AddButton( L( "Done" ), L( "Go back to the Main menu" ),
 		PC_DONE, VoidCb( &CMenuOptions::Hide ), QMF_NOTIFY );
 }

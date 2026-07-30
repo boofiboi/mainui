@@ -543,6 +543,10 @@ bool CFontManager::FindFontDataFile( const char *name, int tall, int weight, int
 	{
 		Q_strncpy( dataFile, "gfx/fonts/tahoma.ttf", dataFileChars );
 		return true;
+	}else if( !strcmp( name, "Consolas" ))
+	{
+		Q_strncpy( dataFile, "gfx/fonts/consola.ttf", dataFileChars );
+		return true;
 	}
 
 	return false;

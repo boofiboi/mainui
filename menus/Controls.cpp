@@ -230,7 +230,7 @@ void CMenuControls::_Init( void )
 {
 	banner.SetPicture( ART_BANNER );
 
-	keysList.SetRect( 360, 230, -20, 465 );
+	keysList.SetRect( 360 + BASE_OFFSET_X, 230, -20, 465 );
 	keysList.SetModel( &keysListModel );
 	keysList.SetupColumn( 0, L( "GameUI_Action" ), 0.50f );
 	keysList.SetupColumn( 1, L( "GameUI_KeyButton" ), 0.25f );
@@ -244,10 +244,34 @@ void CMenuControls::_Init( void )
 	msgBox2.Link( this );
 
 	AddItem( banner );
-	AddButton( L( "GameUI_UseDefaults" ), nullptr, PC_USE_DEFAULTS, msgBox2.MakeOpenEvent( ));
-	AddButton( L( "Adv. Controls" ), nullptr, PC_ADV_CONTROLS, UI_AdvControls_Menu );
-	AddButton( L( "GameUI_OK" ), nullptr, PC_OK, VoidCb( &CMenuControls::SaveAndPopMenu ));
-	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuControls::Cancel ));
+#if XASH_RAYTRACING
+	AddButton(L("GameUI_Joystick"), L("Change gamepad axis and button settings"), PC_GAMEPAD, UI_GamePad_Menu, QMF_NOTIFY);
+	AddButton(L("Adv. Controls"), L("Change mouse sensitivity, enable autoaim, mouselook and crosshair"), PC_ADV_CONTROLS, UI_AdvControls_Menu);
+	AddButton(L("GameUI_UseDefaults"), L("GameUI_KeyboardSettingsText"), PC_USE_DEFAULTS, msgBox2.MakeOpenEvent());
+	if( gpGlobals->developer )
+	{
+		auto* console = AddButton(
+			L( "GameUI_Console" ), L( "Show console" ), PC_CONSOLE, VoidCb( nullptr ), QMF_NOTIFY );
+		SET_EVENT_MULTI( console->onReleased, {
+			UI_SetActiveMenu( FALSE );
+			EngFuncs::KEY_SetDest( KEY_CONSOLE );
+		} );
+	}
+	auto* ok = AddButton(L("GameUI_OK"), L("Save changed and return to configuration menu"), PC_DONE,
+			  VoidCb(&CMenuControls::SaveAndPopMenu));
+	auto* cancel = AddButton(L("GameUI_Cancel"), L("Discard changes and return to configuration menu"), PC_CANCEL,
+			  VoidCb(&CMenuControls::Cancel));
+
+	ok->pos.y += 15;
+    cancel->pos.y += 15;
+#else
+	AddButton( L( "GameUI_UseDefaults" ), L( "GameUI_KeyboardSettingsText" ), PC_USE_DEFAULTS, msgBox2.MakeOpenEvent() );
+	AddButton( L( "Adv. Controls" ), L( "Change mouse sensitivity, enable autoaim, mouselook and crosshair" ), PC_ADV_CONTROLS, UI_AdvControls_Menu );
+	AddButton( L( "GameUI_OK" ), L( "Save changed and return to configuration menu" ), PC_DONE,
+		VoidCb( &CMenuControls::SaveAndPopMenu ) );
+	AddButton( L( "GameUI_Cancel" ), L( "Discard changes and return to configuration menu" ), PC_CANCEL,
+		VoidCb( &CMenuControls::Cancel ) );
+#endif
 	AddItem( keysList );
 }
 

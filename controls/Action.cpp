@@ -143,19 +143,18 @@ void CMenuAction::Draw( )
 		}
 	}
 
+	#if !HELP_TEXT_ONLY_BOTTOM
 	if( szStatusText && iFlags & QMF_NOTIFY )
 	{
 		Point coord;
-
 		coord.x = m_scPos.x + 16 * uiStatic.scaleX;
 		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
-
 		int	r, g, b;
-
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b );
 		EngFuncs::DrawConsoleString( coord, szStatusText );
 	}
+#endif
 
 	if( iFlags & QMF_GRAYED )
 	{
