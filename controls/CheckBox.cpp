@@ -114,22 +114,23 @@ void CMenuCheckBox::Draw( void )
 
 	UI_DrawString( font, m_scTextPos, m_scTextSize, szName, colorText, m_scChSize, eTextAlignment, textflags );
 
-	#if !HELP_TEXT_ONLY_BOTTOM
 	if( szStatusText && iFlags & QMF_NOTIFY )
 	{
 		Point coord;
+
 		if( szName[0] )
 			coord.x = ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
 		else
 			coord.x = m_scSize.w + 16 * uiStatic.scaleX;
 		coord.x += m_scPos.x;
 		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
+
 		int	r, g, b;
+
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b );
 		EngFuncs::DrawConsoleString( coord, szStatusText );
 	}
-#endif
 
 	if( iFlags & QMF_GRAYED )
 	{

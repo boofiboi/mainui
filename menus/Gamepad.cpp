@@ -232,9 +232,7 @@ void CMenuGamePad::_Init( void )
 	invYaw.SetNameAndStatus( L( "Invert" ), L( "Invert yaw axis" ) );
 
 	AddItem( banner );
-#if !XASH_RAYTRACING
 	AddButton( L( "Controls" ), nullptr, PC_CONTROLS, UI_Controls_Menu );
-#endif
 	AddButton( L( "Gyroscope" ), nullptr, PC_GYRO, UI_GamePadGyro_Menu, QMF_NOTIFY, 'g' );
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuGamePad::SaveAndPopMenu ) );	// Обе строки уже встречались ранее !!
 	for( i = 0; i < 6; i++ )

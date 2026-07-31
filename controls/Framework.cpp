@@ -117,7 +117,7 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	btn->SetPicture( buttonPicId );
 	btn->iFlags |= iFlags;
 	btn->onReleased = onReleased;
-	btn->SetCoord( BASE_OFFSET_X, 230 + m_iBtnsNum * 50 );
+	btn->SetCoord( 72, 230 + m_iBtnsNum * 50 );
 	AddItem( btn );
 
 	m_apBtns[m_iBtnsNum++] = btn;
@@ -139,7 +139,7 @@ CMenuPicButton * CMenuFramework::AddButton( const char *szName, const char *szSt
 	btn->SetPicture( szButtonPath, hotkey );
 	btn->iFlags |= iFlags;
 	btn->onReleased = onReleased;
-	btn->SetCoord( BASE_OFFSET_X, 230 + m_iBtnsNum * 50 );
+	btn->SetCoord( 72, 230 + m_iBtnsNum * 50 );
 	AddItem( btn );
 
 	m_apBtns[m_iBtnsNum++] = btn;

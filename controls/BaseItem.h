@@ -14,8 +14,7 @@ GNU General Public License for more details.
 */
 #ifndef BASEITEM_H
 #define BASEITEM_H
-#define HELP_TEXT_ONLY_BOTTOM XASH_RAYTRACING
-#define BASE_OFFSET_X 120
+
 #include "BaseMenu.h"
 #include "Color.h"
 #include "cursor_type.h"

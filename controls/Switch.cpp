@@ -207,18 +207,19 @@ void CMenuSwitch::Draw( void )
 	uint selectColor = iSelectColor;
 	UI_DrawString( font, m_scTextPos, m_scTextSize, szName, uiColorHelp, m_scChSize, eTextAlignment, textflags | ETF_FORCECOL );
 
-	#if !HELP_TEXT_ONLY_BOTTOM
 	if( szStatusText && iFlags & QMF_NOTIFY )
 	{
 		Point coord;
+
 		coord.x = m_scPos.x + 250 * uiStatic.scaleX;
 		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
+
 		int	r, g, b;
+
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b );
 		EngFuncs::DrawConsoleString( coord, szStatusText );
 	}
-#endif
 
 	if( iFlags & QMF_GRAYED )
 	{

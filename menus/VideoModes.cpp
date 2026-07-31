@@ -17,15 +17,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include <vector>
+
 #include "Framework.h"
 #include "MenuStrings.h"
-#include "Bitmap.h"
+#include "Table.h"
 #include "CheckBox.h"
 #include "YesNoMessageBox.h"
 #include "SpinControl.h"
-#include "StringArrayModel.h"
 #include "utlvector.h"
+#include "StringArrayModel.h"
 
 #define ART_BANNER		"gfx/shell/head_vidmodes"
 
@@ -34,74 +34,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //   Because if user has resized the window, or set it to cmdline, it will go
 //   out of sync with the vid mode strings list
 //   Doing this, however, will require API extension
-#define DISABLE_RENDERER_API_SWITCH 1
 
-static const char *pAmdFsrNames[] =
-{
-	L("Off"),
-	L("Native AA"),
-	L("Quality"),
-	L("Balanced"),
-	L("Performance"),
-	L("Ultra Performance"),
-};
-#define SHOW_DLSS 1
-static const char *pNvDlssNames[] =
-{
-	L("Off"),
-	L("Quality"),
-	L("Balanced"),
-	L("Performance"),
-	L("Ultra Performance"),
-};
-static const char *pSharpeningNames[] =
-{
-	L("Off"),
-	L("Naive"),
-	L("AMD CAS"),
-};
-static const char* pVolumetricNames[] = {
-	L("Off"),
-	L("Simple"),
-	L("Volumetric"),
-};
-// must match RT_VINTAGE enum from gl_rmain.c
-static const char* pVintageNames[] = {
-    L( "Off" ),
-    L( "CRT" ),
-    L( "200p" ),
-    L( "480p" ),
-    L( "720p" ),
-};
-
-
-class CMenuVidModesModel final : public CMenuBaseArrayModel
+class CMenuVidModesModel : public CMenuBaseArrayModel
 {
 public:
-	void Update() override
+	void Update() override;
+	int GetRows() const override
 	{
-		int i;
-		for (i = 0; i < 64; i++)
-		{
-			const char *mode = EngFuncs::GetModeString(i);
-			if (!mode) break;
-			m_szModes[i] = mode;
-		}
-		m_iNumModes = i;
+		return m_szModes.Count();
 	}
-	int GetRows() const override { return m_iNumModes; }
-	const char *GetText(int i) override { return m_szModes[IndexToVidMode(i)]; }
-	int IndexToVidMode(int i)
+
+	const char *GetText( int line ) override
 	{
-		ASSERT(m_iNumModes != 0);
-		i = Q_max(0, Q_min(i, m_iNumModes - 1));
-		return (m_iNumModes - 1) - i;
+		return m_szModes[line];
 	}
-	int VidModeToIndex(int i) { return IndexToVidMode(i); }
 
 private:
-	int         m_iNumModes{ 0 };
-	const char* m_szModes[ 64 ]{};
+	CUtlVector<const char *> m_szModes;
 };
 
 class CMenuRenderersModel : public CMenuBaseArrayModel
@@ -146,256 +95,309 @@ class CMenuVidModes : public CMenuFramework
 {
 private:
 	void _Init() override;
-	void _VidInit() override;
-	void Draw() override;
+	void Reload() override;
+	void Draw() override; // put test mode timer here
 
 public:
-	CMenuVidModes() : CMenuFramework( "CMenuVidModes" ) {}
+	CMenuVidModes() : CMenuFramework( "CMenuVidModes" ) { testModeTimer = 0; }
 
 	void SetMode( int mode );
 	void SetMode( int w, int h );
-	void TrySetChosenVidMode();
+	void SetConfig();
+	void RevertChanges();
+	void ApplyChanges();
+	void FinalizeChanges();
 
-	int Vid_GetCurrentVidModeIndex()
-	{
-		return vidListModel.IndexToVidMode(vidList.GetCurrentValue());
-	}
+	void GetConfig();
 
-	void Vid_SetCurrentVidModeIndex(int vidMode)
-	{
-		vidList.SetCurrentValue(vidListModel.VidModeToIndex(vidMode));
-	}
+	void GetRendererConfig();
+	void WriteRendererConfig();
 
-public:
-	CMenuCheckBox			vsync;
-	CMenuCheckBox			muzzleFlash;
-	CMenuCheckBox			nearestTextureFiltering;
-	CMenuCheckBox			classic;
-	CMenuCheckBox			noServerVis;
-	CMenuCheckBox			volumetric;
-	CMenuCheckBox			bloom;
-	CMenuCheckBox			dirt;
+	CMenuCheckBox	vsync;
 
-	CMenuVidModesModel		vidListModel;
-	CMenuSpinControl		vidList;
+	CMenuTable	vidList;
+	CMenuVidModesModel vidListModel;
 
-	CMenuSpinControl		nvDlss;
-	CMenuSpinControl		amdFsr;
-	CMenuSpinControl		vintage;
+	CMenuYesNoMessageBox testModeMsgBox;
+
+	CMenuRenderersModel renderersModel;
+	CMenuSpinControl renderers;
+	CMenuSpinControl windowMode;
+
+	int prevMode;
+	int prevModeX;
+	int prevModeY;
+	int prevFullscreen;
+	float testModeTimer;
+	char testModeMsg[256];
 };
+
+void CMenuVidModesModel::Update()
+{
+	m_szModes.Purge();
+
+	for( int i = 0; ; i++ )
+	{
+		const char *mode = EngFuncs::GetModeString( i );
+
+		if( !mode )
+			break;
+
+		m_szModes.AddToTail( mode );
+	}
+}
+
+void CMenuRenderersModel::Update()
+{
+	const char *r_refdll_loaded = EngFuncs::GetCvarString( "r_refdll_loaded" );
+	m_refs.Purge();
+
+	for( int i = 0; ; i++ )
+	{
+		refdll temp;
+
+		if( !EngFuncs::GetRenderers( i, temp.shortName, sizeof( temp.shortName ), temp.readable, sizeof( temp.readable )))
+			break;
+
+		// append asterisk to currently loaded renderer
+		if( !stricmp( r_refdll_loaded, temp.shortName ))
+			strncat( temp.readable, "*", sizeof( temp.readable ) - strlen( temp.readable ) - 1 );
+
+		m_refs.AddToTail( temp );
+	}
+}
+
+void CMenuVidModes::GetRendererConfig()
+{
+	// get current _configured_ renderer
+	const char *refdll = EngFuncs::GetCvarString( "r_refdll" );
+
+	if( !refdll[0] )
+	{
+		renderers.SetCurrentValue( 0.0f );
+		return;
+	}
+
+	int i;
+	for( i = 0; i < renderersModel.GetRows(); i++ )
+	{
+		if( !stricmp( renderersModel.GetShortName( i ), refdll ))
+		{
+			renderers.SetCurrentValue( i );
+			break;
+		}
+	}
+
+	if( i == renderersModel.GetRows( ))
+	{
+		renderersModel.Add( refdll ); // add unknown user selection
+		renderers.SetCurrentValue( i );
+	}
+}
+
+void CMenuVidModes::WriteRendererConfig()
+{
+	int i = renderers.GetCurrentValue();
+	EngFuncs::CvarSetString( "r_refdll", renderersModel.GetShortName( i ));
+}
+
+void CMenuVidModes::GetConfig()
+{
+	float fullscreen = EngFuncs::GetCvarFloat( "fullscreen" );
+	fullscreen = bound( 0, fullscreen, 2 ); // windowed, fullscreen, borderless
+
+	float vid_mode = EngFuncs::GetCvarFloat( "vid_mode" );
+	vid_mode = bound( 0, vid_mode, vidListModel.GetRows( ));
+
+	windowMode.SetCurrentValue( fullscreen );
+	vidList.SetCurrentIndex( vid_mode );
+
+	renderers.UpdateCvar( true );
+	vsync.UpdateCvar( true );
+
+	ApplyChanges();
+}
 
 void CMenuVidModes::SetMode( int w, int h )
 {
+	// only possible on Xash3D FWGS!
 	EngFuncs::ClientCmdF( true, "vid_setmode %i %i\n", w, h );
 }
+
 void CMenuVidModes::SetMode( int mode )
 {
+	// vid_setmode is a new command, which does not depends on
+	// static resolution list but instead uses dynamic resolution
+	// list provided by video backend
 	EngFuncs::ClientCmdF( true, "vid_setmode %i\n", mode );
 }
+
 /*
 =================
 UI_VidModes_SetConfig
 =================
 */
-void CMenuVidModes::ApplyAndReturnBack()
+void CMenuVidModes::SetConfig( )
 {
-	// NOTE: don't call this function frequently,
-	// as there are no checks that width/height are the same
-	int modeIndex = Vid_GetCurrentVidModeIndex();
-	SetMode( modeIndex );
-	EngFuncs::CvarSetValue( "vid_mode", modeIndex );
-	Vid_SetCurrentVidModeIndex( modeIndex );
+	bool testMode = false;
+	int  currentWindowModeIndex = windowMode.GetCurrentValue();
+	int  currentModeIndex = vidList.GetCurrentIndex();
+	bool isVidModeChanged = prevMode != currentModeIndex;
+	bool isWindowedModeChanged = prevFullscreen != currentWindowModeIndex;
 
-	Hide();
+	/*
+	checking windowed mode first because it'll be checked next in
+	screen resolution changing code, otherwise when user try to
+	change screen resolution and windowed flag at same time,
+	only resolution will be changed.
+	*/
+
+	if( isWindowedModeChanged ) // moved to fullscreen, enable test mode
+		testMode |= currentWindowModeIndex > 0;
+
+	if( isVidModeChanged ) // have changed resolution, but enable test mode only in fullscreen
+		testMode |= currentWindowModeIndex > 0;
+
+	if( testMode ) // show this dialog before changing any settings
+	{
+		testModeMsgBox.Show();
+		testModeTimer = gpGlobals->time + 10.0f; // ten seconds should be enough
+	}
+
+	vsync.WriteCvar();
+
+	if( isWindowedModeChanged )
+		EngFuncs::CvarSetValue( "fullscreen", currentWindowModeIndex );
+
+	if( isVidModeChanged )
+	{
+		SetMode( currentModeIndex );
+		EngFuncs::CvarSetValue( "vid_mode", currentModeIndex );
+		vidList.SetCurrentIndex( currentModeIndex );
+	}
+
+	if( !testMode )
+		Hide();
 }
+
+void CMenuVidModes::FinalizeChanges()
+{
+	prevMode = EngFuncs::GetCvarFloat( "vid_mode" );
+	prevFullscreen = EngFuncs::GetCvarFloat( "fullscreen" );
+	prevModeX = EngFuncs::GetCvarFloat( "width" );
+	prevModeY = EngFuncs::GetCvarFloat( "height" );
+}
+
+void CMenuVidModes::ApplyChanges()
+{
+	if( testModeMsgBox.IsVisible( ))
+		return;
+
+	FinalizeChanges();
+}
+
+void CMenuVidModes::RevertChanges()
+{
+	bool fullscreenChanged = false;
+
+	// if we switched FROM fullscreen TO windowed, then we must get rid of fullscreen mode
+	// so we can easily change the window size, without jerking display mode
+	if( prevFullscreen == false && EngFuncs::GetCvarFloat( "fullscreen" ) != 0.0f )
+	{
+		EngFuncs::CvarSetValue( "fullscreen", prevFullscreen );
+		fullscreenChanged = true;
+	}
+
+	SetMode( prevModeX, prevModeY );
+
+	// otherwise, we better to set window size at first, then switch TO fullscreen
+	if( !fullscreenChanged )
+		EngFuncs::CvarSetValue( "fullscreen", prevFullscreen );
+}
+
 void CMenuVidModes::Draw()
 {
-	const int nvDlssAvailable = (int)EngFuncs::GetCvarFloat("_rt_dlss_available");
-
-    nvDlss.SetGrayed( !nvDlssAvailable );
-    amdFsr.SetGrayed( false );
-
-	amdFsr.UpdateCvar();
-    nvDlss.UpdateCvar();
-	vintage.UpdateCvar();
-
-	const int bloomActive = ( int )EngFuncs::GetCvarFloat( "rt_bloom" );
-    dirt.SetGrayed( !bloomActive );
-
+	if( testModeMsgBox.IsVisible( ) && !FBitSet( testModeMsgBox.iFlags, QMF_CLOSING ))
+	{
+		if( testModeTimer - gpGlobals->time > 0 )
+		{
+			snprintf( testModeMsg, sizeof( testModeMsg ), L( "Keep this resolution? %i seconds remaining" ), (int)(testModeTimer - gpGlobals->time) );
+		}
+		else
+		{
+			testModeMsgBox.Hide();
+			RevertChanges();
+		}
+	}
 	CMenuFramework::Draw();
 }
+
+/*
+=================
+UI_VidModes_Init
+=================
+*/
 void CMenuVidModes::_Init( void )
 {
-	banner.SetPicture(ART_BANNER);
-
-	vidListModel.Update();
-	vidList.szName = L( "Window size" );
-	vidList.Setup( &vidListModel );
-	vidList.SetCharSize( QM_SMALLFONT );
-	vidList.bUpdateImmediately = true;
-
-	vsync.SetNameAndStatus( L( "VSync" ), L( "enable vertical synchronization for RT renderer" ) );
-	vsync.LinkCvar( "rt_vsync" );
-	vsync.bUpdateImmediately = true;
-
-	muzzleFlash.SetNameAndStatus( L( "Muzzle flash" ), L( "enable muzzle flash light source" ) );
-	muzzleFlash.LinkCvar( "rt_mzlflash" );
-	muzzleFlash.bUpdateImmediately = true;
-
-	nearestTextureFiltering.SetNameAndStatus( L( "Pixelated textures" ), L( "disable texture filtering" ) );
-	nearestTextureFiltering.LinkCvar( "rt_texture_nearest" );
-	nearestTextureFiltering.bUpdateImmediately = true;
-
-	noServerVis.SetNameAndStatus( L( "No server cull" ), L( "WARNING: CAN SIGNIFICANTLY REDUCE THE PERFORMANCE\nif true, server->client messages are not culled (i.e. some objects will not pop up)\n" ) );
-	noServerVis.LinkCvar( "sv_novis" );
-	noServerVis.bUpdateImmediately = true;
-
-    classic.SetNameAndStatus( L( "Classic lighting" ), L( "don't use ray tracing for illumination" ) );
-    classic.LinkCvar( "rt_classic" );
-    classic.bUpdateImmediately = true;
-
-	static CStringArrayModel nvDlssModel( pNvDlssNames, std::size( pNvDlssNames ) );
-	nvDlss.SetNameAndStatus("NVIDIA DLSS", L("set Nvidia DLSS"));
-	nvDlss.Setup(&nvDlssModel);
-	nvDlss.SetCharSize(QM_SMALLFONT);
-	nvDlss.LinkCvar("rt_upscale_dlss", CMenuEditable::CVAR_VALUE);
-	nvDlss.bUpdateImmediately = true;
-
-	static CStringArrayModel amdFsrModel( pAmdFsrNames, std::size( pAmdFsrNames ) );
-	amdFsr.SetNameAndStatus("AMD FSR 2.1", L("set AMD FidelityFX Super Resolution 2.1"));
-	amdFsr.Setup(&amdFsrModel);
-	amdFsr.SetCharSize(QM_SMALLFONT);
-	amdFsr.LinkCvar("rt_upscale_fsr2", CMenuEditable::CVAR_VALUE);
-	amdFsr.bUpdateImmediately = true;
-
-    static CStringArrayModel vintageModel( pVintageNames, std::size( pVintageNames ) );
-    vintage.SetNameAndStatus( "Vintage", L( "set vintage effects technique" ) );
-    vintage.Setup( &vintageModel );
-    vintage.SetCharSize( QM_SMALLFONT );
-    vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
-    vintage.bUpdateImmediately = true;
-	
-    nvDlss.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
-        int val = int( dynamic_cast< CMenuEditable* >( pSelf )->CvarValue() );
-        EngFuncs::CvarSetValue( "rt_upscale_dlss", float( val ) );
-        if( val != 0 )
-        {
-            EngFuncs::CvarSetValue( "rt_upscale_fsr2", 0 );
-            EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
-        }
-    };
-    amdFsr.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
-        int val = int( dynamic_cast< CMenuEditable* >( pSelf )->CvarValue() );
-        EngFuncs::CvarSetValue( "rt_upscale_fsr2", float( val ) );
-        if( val != 0 )
-        {
-            EngFuncs::CvarSetValue( "rt_upscale_dlss", 0 );
-            EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
-        }
-    };
-    vintage.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
-        int val = int( dynamic_cast< CMenuEditable* >( pSelf )->CvarValue() );
-        EngFuncs::CvarSetValue( "rt_ef_vintage", float( val ) );
-        if( val != 0 )
-        {
-            EngFuncs::CvarSetValue( "rt_upscale_dlss", 0 );
-            EngFuncs::CvarSetValue( "rt_upscale_fsr2", 0 );
-        }
-    };
-
-    volumetric.SetNameAndStatus( L( "Volumetrics" ),
-                              L( "set volumetric effects technique" ) );
-    volumetric.LinkCvar( "rt_volume_type" );
-    volumetric.bUpdateImmediately = true;
-
-    bloom.SetNameAndStatus( L( "Bloom" ), L( "enable blooming" ) );
-    bloom.LinkCvar( "rt_bloom" );
-    bloom.bUpdateImmediately = true;
-
-    dirt.SetNameAndStatus( L( "Lens dirt" ), L( "should Gordon not be distracted by cleaning his glasses?" ) );
-    dirt.LinkCvar( "rt_bloom_dirt_enable" );
-    dirt.bUpdateImmediately = true;
-
-	AddItem( background );
-	AddItem( banner );
-	AddItem( vidList );
-    AddItem( vsync );
-#if SHOW_DLSS
-	AddItem( nvDlss );
-#endif
-	AddItem( amdFsr );
-    AddItem( classic );
-    AddItem( vintage );
-
-    std::vector< CMenuBaseItem* > checkboxes[] = {
-        { &nearestTextureFiltering, &muzzleFlash, &noServerVis },
-        { &bloom, &dirt },
-    };
-    for( auto& line : checkboxes )
-    {
-        for( CMenuBaseItem* pc : line )
-        {
-            AddItem( pc );
-        }
-    }
-
-    auto& doneBtn = *AddButton( L( "Done" ),
-                                L( "Apply and return back to a previous menu" ),
-                                PC_DONE,
-                                VoidCb( &CMenuVidModes::ApplyAndReturnBack ) );
-
+	static const char *windowModeStr[] =
 	{
-	    // clang-format off
-		#define SPIN_W 300
-		#define SPIN_H 24
+		L( "Windowed" ),
+		L( "Fullscreen" ),
+		L( "Borderless" ),
+	};
+	static CStringArrayModel windowModeModel( windowModeStr, V_ARRAYSIZE( windowModeStr ));
 
-        auto GetX = []( int j ) {
-            return BASE_OFFSET_X + j * ( SPIN_W + 72 );
-        };
-        auto GetXSmall = []( int j ) {
-            return BASE_OFFSET_X + j * ( SPIN_W / 2 + 72 );
-        };
-        auto GetY = []( float i ) {
-            return ( int )( 230 + i * ( SPIN_H * 2 ) );
-        };
+	banner.SetPicture( ART_BANNER );
 
-        float i = 0;
+	vidList.SetRect( 360, 230, -20, 365 );
+	vidList.SetupColumn( 0, L( "GameUI_Resolution" ), 1.0f );
+	vidList.SetModel( &vidListModel );
 
-        // spin-controls
-        vidList.SetRect( GetX( 0 ), GetY( i ), SPIN_W, SPIN_H ); vsync.SetCoord( GetX( 1 ), GetY( i - 0.1f ) );
-        i += 2.0f;
+	vsync.szName = L( "GameUI_VSync" );
+	vsync.SetCoord( 360, 670 );
+	vsync.LinkCvar( "gl_vsync" );
 
-#if SHOW_DLSS
-        nvDlss.SetRect( GetX( 0 ), GetY( i ), SPIN_W, SPIN_H ); amdFsr.SetRect( GetX( 1 ), GetY( i ), SPIN_W, SPIN_H );
-#else
-        amdFsr.SetRect( GetX( 0 ), GetY( i ), SPIN_W, SPIN_H );
-#endif
-        i += 1.5f;
+	testModeMsgBox.SetMessage( testModeMsg );
+	testModeMsgBox.onPositive = VoidCb( &CMenuVidModes::FinalizeChanges );
+	testModeMsgBox.onNegative = VoidCb( &CMenuVidModes::RevertChanges );
+	testModeMsgBox.Link( this );
 
-	    classic.SetCoord( GetX( 0 ), GetY( i ) ); vintage.SetRect( GetX( 1 ), GetY( i + 0.1f ), SPIN_W, SPIN_H );
-        i += 1.5f;
-        // clang-format on
+	renderersModel.Update();
+	renderers.szName = L( "GameUI_Renderer" );
+	renderers.Setup( &renderersModel );
+	renderers.SetRect( 80, 480, 250, 32 );
+	renderers.SetCharSize( QM_SMALLFONT );
+	renderers.onCvarGet = VoidCb( &CMenuVidModes::GetRendererConfig );
+	renderers.onCvarWrite = VoidCb( &CMenuVidModes::WriteRendererConfig );
+	renderers.bUpdateImmediately = true;
 
-        // switch-buttons
-        for( auto& line : checkboxes )
-        {
-            for( int x = 0; x < int( line.size() ); x++ )
-            {
-                line[ x ]->SetCoord( GetXSmall( x ), GetY( i ) );
-            }
-            i += 1.25f;
-        }
+	windowMode.szName = L( "Window mode" );
+	windowMode.Setup( &windowModeModel );
+	windowMode.SetRect( 80, 550, 250, 32 );
+	windowMode.SetCharSize( QM_SMALLFONT );
+	SET_EVENT_MULTI( windowMode.onChanged,
+	{
+		// disable vid modes list when borderless is used
+		CMenuVidModes *parent = pSelf->GetParent( CMenuVidModes );
+		parent->vidList.SetGrayed( parent->windowMode.GetCurrentValue( ) == 2 );
+		parent->vidList.SetInactive( parent->windowMode.GetCurrentValue( ) == 2 );
+	});
 
-        // back button
-        i += 0.5f;
-        doneBtn.SetCoord( GetX( 0 ), GetY( i ) );
-	}
+	AddItem( banner );
+	AddButton( L( "GameUI_Apply" ), nullptr, PC_OK, VoidCb( &CMenuVidModes::SetConfig ) );
+	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuVidModes::Hide ) );
+	AddItem( renderers );
+	AddItem( windowMode );
+	AddItem( vsync );
+	AddItem( vidList );
+
+	renderers.LinkCvar( "r_refdll", CMenuEditable::CVAR_STRING );
 }
 
-void CMenuVidModes::_VidInit()
+void CMenuVidModes::Reload()
 {
-	Vid_SetCurrentVidModeIndex( static_cast< int >( EngFuncs::GetCvarFloat( "vid_mode" ) ) );
+	GetConfig();
+	CMenuFramework::Reload();
 }
 
-ADD_MENU( menu_vidmodes, CMenuVidModes, UI_VidModes_Menu );
-
+ADD_MENU( menu_vidmodes, CMenuVidModes, UI_VidModes_Menu )

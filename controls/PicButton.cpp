@@ -24,10 +24,6 @@ GNU General Public License for more details.
 #include <stdlib.h>
 #include "Framework.h"
 
-#if XASH_RAYTRACING
-extern bool rt_isdrawing_main;
-#endif
-
 static int g_hotkeys[PC_BUTTONCOUNT] =
 {
 	'n', // PC_NEW_GAME = 0,
@@ -244,18 +240,19 @@ void CMenuPicButton::Draw( )
 	if( iOldState == BUTTON_NOFOCUS && state != BUTTON_NOFOCUS )
 		iFocusStartTime = uiStatic.realTime;
 
-	#if !HELP_TEXT_ONLY_BOTTOM
 	if( szStatusText && FBitSet( iFlags, QMF_NOTIFY ) && !FBitSet( gMenu.m_gameinfo.flags, GFL_NOSKILLS ))
 	{
 		Point coord;
+
 		coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
 		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
+
 		int	r, g, b;
+
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b );
 		EngFuncs::DrawConsoleString( coord, szStatusText );
 	}
-#endif
 
 	int a = (512 - (uiStatic.realTime - m_iLastFocusTime)) >> 1;
 
@@ -359,41 +356,6 @@ void CMenuPicButton::Draw( )
 		uint textflags = ETF_NOSIZELIMIT | ETF_FORCECOL;
 
 		SetBits( textflags, (iFlags & QMF_DROPSHADOW) ? ETF_SHADOW : 0 );
-
-#if XASH_RAYTRACING
-		// draw solid background only in main menu with dynamic background
-        if( rt_isdrawing_main && EngFuncs::GetCvarFloat( "cl_background" ) )
-        {
-            int strWidth   = 0;
-            int charHeight = m_scChSize;
-
-            if( szName && szName[ 0 ] != '\0' )
-            {
-                int i = 0;
-                while( char c = szName[ i++ ] )
-                {
-                    // unicode
-                    int uch       = EngFuncs::UtfProcessChar( static_cast< unsigned char >( c ) );
-                    int charWidth = g_FontMgr->GetCharacterWidthScaled( font, uch, charHeight );
-
-                    strWidth += charWidth;
-                }
-            }
-
-            if( strWidth > 0 )
-            {
-                int pad = 8;
-
-                int cx = m_scPos.x - pad;
-                int cy = m_scPos.y - pad;
-
-                int cw = pad + strWidth + pad;
-                int ch = pad + charHeight + pad;
-
-                EngFuncs::engfuncs.pfnFillRGBA( cx, cy, cw, ch, 0, 0, 0, 235 );
-            }
-        }
-#endif
 
 		if( iFlags & QMF_GRAYED )
 		{

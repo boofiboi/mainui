@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "keydefs.h"
 #include "MenuStrings.h"
 #include "PlayerIntroduceDialog.h"
-
-#include <initializer_list>
 #include "gameinfo.h"
 #include "AnimatedBanner.h"
 #include "MovieBanner.h"
@@ -40,25 +38,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ART_CLOSEBTN_F	"gfx/shell/cls_f"
 #define ART_CLOSEBTN_D	"gfx/shell/cls_d"
 
-#if XASH_RAYTRACING
-bool rt_isdrawing_main = false;
-#endif
-
 class CMenuMain: public CMenuFramework
 {
 public:
 	CMenuMain() : CMenuFramework( "CMenuMain" ) { }
 
 	bool KeyDown( int key ) override;
-
-#if XASH_RAYTRACING
-    void Draw() override
-    {
-        rt_isdrawing_main = true;
-		CMenuFramework::Draw();
-        rt_isdrawing_main = false;
-    }
-#endif
 
 private:
 	void _Init() override;
@@ -70,24 +55,32 @@ private:
 	void QuitDialogCb();
 	void DisconnectCb();
 	void DisconnectDialogCb();
-
+	void HazardCourseDialogCb();
+	void HazardCourseCb();
 
 	CMenuAnimatedBanner animatedBanner;
 	CMenuMovieBanner movieBanner;
 
+	CMenuPicButton	console;
 	CMenuPicButton	resumeGame;
 	CMenuPicButton	disconnect;
-	CMenuPicButton	singleplayer;
-	CMenuPicButton	graphics;
-	CMenuPicButton	audio;
-	CMenuPicButton	controls;
+	CMenuPicButton	newGame;
+	CMenuPicButton	hazardCourse;
+	CMenuPicButton	configuration;
+	CMenuPicButton	saveRestore;
 	CMenuPicButton	multiPlayer;
 	CMenuPicButton	customGame;
+	CMenuPicButton	previews;
 	CMenuPicButton	quit;
+
+	// buttons on top right. Maybe should be drawn if fullscreen == 1?
+	CMenuBitmap	minimizeBtn;
+	CMenuBitmap	quitButton;
 
 	// quit dialog
 	CMenuYesNoMessageBox dialog;
 
+	bool bTrainMap;
 	bool bCustomGame;
 };
 
@@ -118,6 +111,12 @@ void CMenuMain::DisconnectDialogCb()
 	dialog.Show();
 }
 
+void CMenuMain::HazardCourseDialogCb()
+{
+	dialog.onPositive = VoidCb( &CMenuMain::HazardCourseCb );;
+	dialog.SetMessage( L( "StringsList_234" ) );
+	dialog.Show();
+}
 
 /*
 =================
@@ -142,17 +141,37 @@ bool CMenuMain::KeyDown( int key )
 	return CMenuFramework::KeyDown( key );
 }
 
+/*
+=================
+UI_Main_HazardCourse
+=================
+*/
+void CMenuMain::HazardCourseCb()
+{
+	if( EngFuncs::GetCvarFloat( "host_serverstate" ) && EngFuncs::GetCvarFloat( "maxplayers" ) > 1 )
+		EngFuncs::HostEndGame( "end of the game" );
+
+	EngFuncs::CvarSetValue( "skill", 1.0f );
+	EngFuncs::CvarSetValue( "deathmatch", 0.0f );
+	EngFuncs::CvarSetValue( "teamplay", 0.0f );
+	EngFuncs::CvarSetValue( "pausable", 1.0f ); // singleplayer is always allowing pause
+	EngFuncs::CvarSetValue( "coop", 0.0f );
+	EngFuncs::CvarSetValue( "maxplayers", 1.0f ); // singleplayer
+
+	EngFuncs::PlayBackgroundTrack( NULL, NULL );
+
+	EngFuncs::ClientCmd( false, "hazardcourse\n" );
+}
 
 void CMenuMain::_Init( void )
 {
-	
+	if( gMenu.m_gameinfo.trainmap[0] && stricmp( gMenu.m_gameinfo.trainmap, gMenu.m_gameinfo.startmap ) != 0 )
+		bTrainMap = true;
+	else bTrainMap = false;
 
-#if !XASH_RAYTRACING
 	if( EngFuncs::GetCvarFloat( "host_allow_changegame" ))
 		bCustomGame = true;
-	else
-#endif
-		bCustomGame = false;
+	else bCustomGame = false;
 
 	// console
 	console.SetNameAndStatus( L( "GameUI_Console" ), L( "Show console" ) );
@@ -165,91 +184,122 @@ void CMenuMain::_Init( void )
 		EngFuncs::KEY_SetDest( KEY_CONSOLE );
 	});
 
-	resumeGame.SetNameAndStatus( L( "Resume" ), L( "" ) );
+	resumeGame.SetNameAndStatus( L( "GameUI_GameMenu_ResumeGame" ), L( "StringsList_188" ) );
 	resumeGame.SetPicture( PC_RESUME_GAME );
 	resumeGame.iFlags |= QMF_NOTIFY;
 	resumeGame.onReleased = UI_CloseMenu;
 
-	disconnect.SetNameAndStatus( L( "GameUI_GameMenu_Disconnect" ), L( "" ) );
+	disconnect.SetNameAndStatus( L( "GameUI_GameMenu_Disconnect" ), L( "Disconnect from server" ) );
 	disconnect.SetPicture( PC_DISCONNECT );
 	disconnect.iFlags |= QMF_NOTIFY;
 	disconnect.onReleased = VoidCb( &CMenuMain::DisconnectDialogCb );
 
-	singleplayer.SetNameAndStatus( L( "Campaign" ), L( "" ) );
-	singleplayer.SetPicture( PC_SAVE_LOAD_GAME );
-	singleplayer.onReleased = UI_SaveLoad_Menu;
-	singleplayer.iFlags |= QMF_NOTIFY;
+	newGame.SetNameAndStatus( L( "GameUI_NewGame" ), L( "StringsList_189" ) );
+	newGame.SetPicture( PC_NEW_GAME );
+	newGame.iFlags |= QMF_NOTIFY;
+	newGame.onReleased = UI_NewGame_Menu;
 
-	multiPlayer.SetNameAndStatus( L( "GameUI_Multiplayer" ), L( "" ) );
+	hazardCourse.SetNameAndStatus( L( "GameUI_TrainingRoom" ), L( "StringsList_190" ) );
+	hazardCourse.SetPicture( PC_HAZARD_COURSE );
+	hazardCourse.iFlags |= QMF_NOTIFY;
+	hazardCourse.onReleasedClActive = VoidCb( &CMenuMain::HazardCourseDialogCb );
+	hazardCourse.onReleased = VoidCb( &CMenuMain::HazardCourseCb );
+
+	multiPlayer.SetNameAndStatus( L( "GameUI_Multiplayer" ), L( "StringsList_198" ) );
 	multiPlayer.SetPicture( PC_MULTIPLAYER );
 	multiPlayer.iFlags |= QMF_NOTIFY;
 	multiPlayer.onReleased = UI_MultiPlayer_Menu;
 
-	graphics.SetNameAndStatus( L( "Graphics" ), L( "" ) );
-	graphics.SetPicture( PC_VID_MODES );
-	graphics.iFlags |= QMF_NOTIFY;
-	graphics.onReleased = UI_VidModes_Menu;
+	configuration.SetNameAndStatus( L( "GameUI_Options" ), L( "StringsList_193" ) );
+	configuration.SetPicture( PC_CONFIG );
+	configuration.iFlags |= QMF_NOTIFY;
+	configuration.onReleased = UI_Options_Menu;
 
-	audio.SetNameAndStatus( L( "GameUI_Audio" ), L( "" ) );
-	audio.SetPicture( PC_AUDIO );
-	audio.iFlags |= QMF_NOTIFY;
-	audio.onReleased = UI_Audio_Menu;
+	saveRestore.iFlags |= QMF_NOTIFY;
 
-	controls.SetNameAndStatus( L( "Controls" ), L( "" ) );
-	controls.SetPicture( PC_CONTROLS );
-	controls.iFlags |= QMF_NOTIFY;
-	controls.onReleased = UI_Controls_Menu;
-
-	customGame.SetNameAndStatus( L( "GameUI_ChangeGame" ), L( "" ) );
+	customGame.SetNameAndStatus( L( "GameUI_ChangeGame" ), L( "StringsList_530" ) );
 	customGame.SetPicture( PC_CUSTOM_GAME );
 	customGame.iFlags |= QMF_NOTIFY;
 	customGame.onReleased = UI_CustomGame_Menu;
 
-	quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "" ) );
+	previews.SetNameAndStatus( L( "Previews" ), L( "StringsList_400" ) );
+	previews.SetPicture( PC_PREVIEWS );
+	previews.iFlags |= QMF_NOTIFY;
+	SET_EVENT( previews.onReleased, EngFuncs::ShellExecute( MenuStrings[ IDS_MEDIA_PREVIEWURL ], NULL, false ) );
+
+	quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "GameUI_QuitConfirmationText" ) );
 	quit.SetPicture( PC_QUIT );
 	quit.iFlags |= QMF_NOTIFY;
 	quit.onReleased = VoidCb( &CMenuMain::QuitDialogCb );
 
+	quitButton.SetPicture( ART_CLOSEBTN_N, ART_CLOSEBTN_F, ART_CLOSEBTN_D );
+	quitButton.iFlags = QMF_MOUSEONLY;
+	quitButton.eFocusAnimation = QM_HIGHLIGHTIFFOCUS;
+	quitButton.onReleased = VoidCb( &CMenuMain::QuitDialogCb );
+
+	minimizeBtn.SetPicture( ART_MINIMIZE_N, ART_MINIMIZE_F, ART_MINIMIZE_D );
+	minimizeBtn.iFlags = QMF_MOUSEONLY;
+	minimizeBtn.eFocusAnimation = QM_HIGHLIGHTIFFOCUS;
+	minimizeBtn.onReleased.SetCommand( false, "minimize\n" );
+
+	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
+		newGame.SetGrayed( true );
+
 	if ( gMenu.m_gameinfo.gamemode == GAME_SINGLEPLAYER_ONLY )
 		multiPlayer.SetGrayed( true );
+
+	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
+	{
+		saveRestore.SetGrayed( true );
+		hazardCourse.SetGrayed( true );
+	}
+
+	// too short execute string - not a real command
+	if( strlen( MenuStrings[IDS_MEDIA_PREVIEWURL] ) <= 3 )
+	{
+		previews.SetGrayed( true );
+	}
 
 	// server.dll needs for reading savefiles or startup newgame
 	if( !EngFuncs::CheckGameDll( ))
 	{
-		singleplayer.SetGrayed( true );
+		saveRestore.SetGrayed( true );
+		hazardCourse.SetGrayed( true );
+		newGame.SetGrayed( true );
+	}
+
+	if( FBitSet( gMenu.m_gameinfo.flags, GFL_ANIMATED_TITLE ))
+	{
+		if( animatedBanner.TryLoad())
+			AddItem( animatedBanner );
+	}
+	else
+	{
+		AddItem( movieBanner );
 	}
 
 	dialog.Link( this );
 
-	AddItem( background );
 	AddItem( banner );
-
+	AddItem( console );
+	AddItem( disconnect );
 	AddItem( resumeGame );
+	AddItem( newGame );
 
-	AddItem( singleplayer );
+	if ( bTrainMap )
+		AddItem( hazardCourse );
 
+	AddItem( configuration );
+	AddItem( saveRestore );
 	AddItem( multiPlayer );
 
-	AddItem( graphics );
-	AddItem( controls );
-	AddItem( audio );
-
-	AddItem( quit );
-	AddItem( disconnect );
-
-	if( bCustomGame )
+	if ( bCustomGame )
 		AddItem( customGame );
-}
 
-void PlaceOnLine( std::initializer_list< CMenuPicButton* > arr, int y )
-{
-	int i = 0;
-	for( auto* b : arr )
-	{
-		b->SetCoord( BASE_OFFSET_X + ( i * 150 ), y );
-		i++;
-	}
-}
+	AddItem( previews );
+	AddItem( quit );
+	AddItem( minimizeBtn );
+	AddItem( quitButton );
 }
 
 /*
@@ -259,40 +309,81 @@ UI_Main_Init
 */
 void CMenuMain::VidInit( bool connected )
 {
-	bool isSingle = gpGlobals->maxClients < 2;
+	int hoffset = ( 70 / 640.0 ) * 1024.0;
 
-	bool showResume     = connected;
-	bool showDisconnect = connected && !isSingle;
+	// in original menu Previews is located at specific point
+	int previews_voffset = ( 404 / 480.0 ) * 768.0;
 
-	resumeGame.SetVisibility( showResume );
-	disconnect.SetVisibility( showDisconnect );
+	// no visible console button gap
+	int ygap = (( 404 - 373 ) / 480.0 ) * 768.0;
 
-	struct Offset
+	// statically positioned items
+	minimizeBtn.SetRect( uiStatic.width - 72, 13, 32, 32 );
+	quitButton.SetRect( uiStatic.width - 36, 13, 32, 32 );
+
+	previews.SetCoord( hoffset, previews_voffset );
+	quit.SetCoord( hoffset, previews_voffset + ygap );
+
+	// let's start calculating positions
+	int yoffset = previews_voffset - ygap;
+
+	if( bCustomGame )
 	{
-		int base = 450;
-		int Next()
-		{
-			int c = base;
-			base += 50;
-			return c;
-		}
-		void Padding() { base += 0; }
-	} offset;
-
-	if( showResume )
-	{
-		PlaceOnLine( { &resumeGame }, offset.Next() );
-		offset.Padding();
+		customGame.SetCoord( hoffset, yoffset );
+		yoffset -= ygap;
 	}
 
-	PlaceOnLine( { &singleplayer }, offset.Next() );
-	PlaceOnLine( { &multiPlayer }, offset.Next() );
-	offset.Padding();
+	multiPlayer.SetCoord( hoffset, yoffset );
+	yoffset -= ygap;
 
-	PlaceOnLine( { &graphics, &controls, &audio }, offset.Next() );
-	offset.Padding();
+	bool single = gpGlobals->maxClients < 2;
 
-	PlaceOnLine( { &quit, &disconnect, &customGame }, offset.Next() );
+	saveRestore.SetCoord( hoffset, yoffset );
+	yoffset -= ygap;
+
+	configuration.SetCoord( hoffset, yoffset );
+	yoffset -= ygap;
+
+	if( bTrainMap )
+	{
+		hazardCourse.SetCoord( hoffset, yoffset );
+		yoffset -= ygap;
+	}
+
+	newGame.SetCoord( hoffset, yoffset );
+	yoffset -= ygap;
+
+	if( connected )
+	{
+		resumeGame.SetCoord( hoffset, yoffset );
+		yoffset -= ygap;
+
+		if( !single )
+		{
+			disconnect.SetCoord( hoffset, yoffset );
+			yoffset -= ygap;
+		}
+	}
+
+	console.SetCoord( hoffset, yoffset );
+	yoffset -= ygap;
+
+	// now figure out what's visible
+	resumeGame.SetVisibility( connected );
+	disconnect.SetVisibility( connected && !single );
+
+	if( connected && single )
+	{
+		saveRestore.SetNameAndStatus( L( "Save\\Load Game" ), L( "StringsList_192" ) );
+		saveRestore.SetPicture( PC_SAVE_LOAD_GAME );
+		saveRestore.onReleased = UI_SaveLoad_Menu;
+	}
+	else
+	{
+		saveRestore.SetNameAndStatus( L( "GameUI_LoadGame" ), L( "StringsList_191" ) );
+		saveRestore.SetPicture( PC_LOAD_GAME );
+		saveRestore.onReleased = UI_LoadGame_Menu;
+	}
 }
 
 void CMenuMain::_VidInit()

@@ -173,7 +173,7 @@ void CMenuVidOptions::_Init( void )
 
 #if LEGACY_VIEWSIZE
 	screenSize.szName = L( "Screen size" );
-	screenSize.SetCoord( BASE_OFFSET_X, height );
+	screenSize.SetCoord( 72, height );
 	screenSize.Setup( 30, 120, 10 );
 	screenSize.onChanged = CMenuEditable::WriteCvarCb;
 
@@ -181,13 +181,13 @@ void CMenuVidOptions::_Init( void )
 #endif
 
 	gammaIntensity.szName = L( "GameUI_Gamma" );
-	gammaIntensity.SetCoord( BASE_OFFSET_X, height );
+	gammaIntensity.SetCoord( 72, height );
 	gammaIntensity.Setup( 0.0, 1.0, 0.025 );
 	gammaIntensity.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
 	gammaIntensity.onCvarGet = VoidCb( &CMenuVidOptions::GetConfig );
 	height += 60;
 
-	brightness.SetCoord( BASE_OFFSET_X, height );
+	brightness.SetCoord( 72, height );
 	brightness.szName = L( "GameUI_Brightness" );
 	brightness.Setup( 0, 1.0, 0.025 );
 	brightness.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
@@ -195,7 +195,7 @@ void CMenuVidOptions::_Init( void )
 	height += 60;
 
 	done.szName = L( "GameUI_OK" );
-	done.SetCoord( BASE_OFFSET_X, height );
+	done.SetCoord( 72, height );
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 	height += 60;
