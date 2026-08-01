@@ -24,134 +24,91 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Slider.h"
 #include "CheckBox.h"
 #include "YesNoMessageBox.h"
+#include "SpinControl.h"
+#include "StringArrayModel.h"
 
 #define ART_BANNER	  	"gfx/shell/head_vidoptions"
-#define ART_GAMMA		"gfx/shell/gamma"
 
 #define LEGACY_VIEWSIZE 0
+
+// options for the ray traced renderer
+static const char *pNvDlssNames[] =
+{
+	L( "Off" ),
+	L( "Quality" ),
+	L( "Balanced" ),
+	L( "Performance" ),
+	L( "Ultra Performance" ),
+};
+
+// must match the rt_upscale_fsr3 cvar modes from gl_opengl.c
+static const char *pFsr3Names[] =
+{
+	L( "Off" ),
+	L( "Native AA" ),
+	L( "Quality" ),
+	L( "Balanced" ),
+	L( "Performance" ),
+	L( "Ultra Performance" ),
+};
+
+// must match RT_VINTAGE enum from gl_rmain.c
+static const char *pVintageNames[] =
+{
+	L( "Off" ),
+	L( "CRT" ),
+	L( "200p" ),
+	L( "480p" ),
+	L( "720p" ),
+};
 
 class CMenuVidOptions : public CMenuFramework
 {
 private:
 	void _Init() override;
-	void _VidInit() override;
 	void Reload() override;
 
 public:
 	CMenuVidOptions() : CMenuFramework( "CMenuVidOptions" ) { }
 	void SaveAndPopMenu() override;
-	void UpdateConfig();
-	void GetConfig();
-
-	int		outlineWidth;
-
-	class CMenuVidPreview : public CMenuBitmap
-	{
-		void Draw() override;
-	} testImage;
 
 	CMenuPicButton	done;
 
 #if LEGACY_VIEWSIZE
 	CMenuSlider	screenSize;
 #endif
-	CMenuSlider	gammaIntensity;
-	CMenuSlider	brightness;
-	CMenuCheckBox	vbo;
-	CMenuCheckBox	swwater;
-	CMenuCheckBox	overbright;
-	CMenuCheckBox	filtering;
 	CMenuCheckBox	detailtex;
 	CMenuCheckBox	hudscale;
 	CMenuYesNoMessageBox	msgBox;
 
-	HIMAGE		hTestImage;
+	// ray traced renderer options
+	CMenuCheckBox vsync;
+	CMenuCheckBox muzzleFlash;
+	CMenuCheckBox nearestTextureFiltering;
+	CMenuCheckBox classic;
+	CMenuCheckBox noServerVis;
+	CMenuCheckBox volumetric;
+	CMenuCheckBox bloom;
+	CMenuCheckBox dirt;
+	CMenuSpinControl nvDlss;
+	CMenuSpinControl fsr3;
+	CMenuSpinControl vintage;
 };
 
 /*
 =================
-CMenuVidOptions::UpdateConfig
+CMenuVidOptions::SaveAndPopMenu
 =================
 */
-void CMenuVidOptions::UpdateConfig( void )
-{
-	float val1 = RemapVal( gammaIntensity.GetCurrentValue(), 0.0, 1.0, 1.8, 3.0 );
-	float val2 = RemapVal( brightness.GetCurrentValue(), 0.0, 1.0, 0.0, 3.0 );
-	EngFuncs::CvarSetValue( "gamma", val1 );
-	EngFuncs::CvarSetValue( "brightness", val2 );
-	EngFuncs::ProcessImage( hTestImage, val1, val2 );
-}
-
-void CMenuVidOptions::GetConfig( void )
-{
-	float val1 = EngFuncs::GetCvarFloat( "gamma" );
-	float val2 = EngFuncs::GetCvarFloat( "brightness" );
-
-	gammaIntensity.SetCurrentValue( RemapVal( val1, 1.8f, 3.0f, 0.0f, 1.0f ) );
-	brightness.SetCurrentValue( RemapVal( val2, 0.0f, 3.0f, 0.0f, 1.0f ) );
-	EngFuncs::ProcessImage( hTestImage, val1, val2 );
-
-	gammaIntensity.SetOriginalValue( val1 );
-	brightness.SetOriginalValue( val2 );
-}
-
 void CMenuVidOptions::SaveAndPopMenu( void )
 {
 #if LEGACY_VIEWSIZE
 	screenSize.WriteCvar();
 #endif
 	detailtex.WriteCvar();
-	vbo.WriteCvar();
-	swwater.WriteCvar();
-	overbright.WriteCvar();
-	filtering.WriteCvar();
 	hudscale.WriteCvar();
-	// gamma and brightness is already written
 
 	CMenuFramework::SaveAndPopMenu();
-}
-
-/*
-=================
-CMenuVidOptions::Ownerdraw
-=================
-*/
-void CMenuVidOptions::CMenuVidPreview::Draw( )
-{
-	int		color = 0xFFFF0000; // 255, 0, 0, 255
-	int		viewport[4];
-	int		viewsize, size, sb_lines;
-
-#if LEGACY_VIEWSIZE
-	viewsize = EngFuncs::GetCvarFloat( "viewsize" );
-#else
-	viewsize = 120;
-#endif
-
-	if( viewsize >= 120 )
-		sb_lines = 0;	// no status bar at all
-	else if( viewsize >= 110 )
-		sb_lines = 24;	// no inventory
-	else sb_lines = 48;
-
-	size = Q_min( viewsize, 100 );
-
-	viewport[2] = m_scSize.w * size / 100;
-	viewport[3] = m_scSize.h * size / 100;
-
-	if( viewport[3] > m_scSize.h - sb_lines )
-		viewport[3] = m_scSize.h - sb_lines;
-	if( viewport[3] > m_scSize.h )
-		viewport[3] = m_scSize.h;
-
-	viewport[2] &= ~7;
-	viewport[3] &= ~1;
-
-	viewport[0] = (m_scSize.w - viewport[2]) / 2;
-	viewport[1] = (m_scSize.h - sb_lines - viewport[3]) / 2;
-
-	UI_DrawPic( m_scPos.x + viewport[0], m_scPos.y + viewport[1], viewport[2], viewport[3], uiColorWhite, szPic );
-	UI_DrawRectangleExt( m_scPos, m_scSize, color, ((CMenuVidOptions*)Parent())->outlineWidth );
 }
 
 /*
@@ -161,13 +118,7 @@ CMenuVidOptions::Init
 */
 void CMenuVidOptions::_Init( void )
 {
-	hTestImage = EngFuncs::PIC_Load( ART_GAMMA, PIC_KEEP_SOURCE | PIC_EXPAND_SOURCE );
-
 	banner.SetPicture( ART_BANNER );
-
-	testImage.iFlags = QMF_INACTIVE;
-	testImage.SetRect( 390, 225, 480, 450 );
-	testImage.SetPicture( ART_GAMMA );
 
 	int height = 280;
 
@@ -180,19 +131,13 @@ void CMenuVidOptions::_Init( void )
 	height += 60;
 #endif
 
-	gammaIntensity.szName = L( "GameUI_Gamma" );
-	gammaIntensity.SetCoord( 72, height );
-	gammaIntensity.Setup( 0.0, 1.0, 0.025 );
-	gammaIntensity.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
-	gammaIntensity.onCvarGet = VoidCb( &CMenuVidOptions::GetConfig );
-	height += 60;
+	detailtex.szName = L( "Detail textures" );
+	detailtex.SetCoord( 72, height );
+	height += 50;
 
-	brightness.SetCoord( 72, height );
-	brightness.szName = L( "GameUI_Brightness" );
-	brightness.Setup( 0, 1.0, 0.025 );
-	brightness.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
-	brightness.onCvarGet = VoidCb( &CMenuVidOptions::GetConfig );
-	height += 60;
+	hudscale.szName = L( "Auto scale HUD" );
+	hudscale.SetCoord( 72, height );
+	height += 50;
 
 	done.szName = L( "GameUI_OK" );
 	done.SetCoord( 72, height );
@@ -200,29 +145,79 @@ void CMenuVidOptions::_Init( void )
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 	height += 60;
 
-	detailtex.szName = L( "Detail textures" );
-	detailtex.SetCoord( 72, height );
-	height += 50;
+	// ray traced renderer options
+	static CStringArrayModel nvDlssModel( pNvDlssNames, V_ARRAYSIZE( pNvDlssNames ) );
+	nvDlss.szName = "NVIDIA DLSS";
+	nvDlss.SetRect( 390, 280, 250, 32 );
+	nvDlss.SetCharSize( QM_SMALLFONT );
+	nvDlss.Setup( &nvDlssModel );
+	nvDlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
+	nvDlss.bUpdateImmediately = true;
+	nvDlss.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
+		EngFuncs::CvarSetValue( "rt_upscale_dlss", float( val ) );
+		if( val != 0 )
+		{
+			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
+		}
+	};
 
-	vbo.szName = L( "Use VBO" );
-	vbo.SetCoord( 72, height );
-	height += 50;
+	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
+	fsr3.szName = "AMD FSR3";
+	fsr3.SetRect( 660, 280, 250, 32 );
+	fsr3.SetCharSize( QM_SMALLFONT );
+	fsr3.Setup( &fsr3Model );
+	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
+	fsr3.bUpdateImmediately = true;
+	fsr3.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
+		EngFuncs::CvarSetValue( "rt_upscale_fsr3", float( val ) );
+		if( val != 0 )
+		{
+			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
+		}
+	};
 
-	swwater.szName = L( "Water ripples" );
-	swwater.SetCoord( 72, height );
-	height += 50;
+	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
+	vintage.szName = "Vintage";
+	vintage.SetRect( 390, 340, 250, 32 );
+	vintage.SetCharSize( QM_SMALLFONT );
+	vintage.Setup( &vintageModel );
+	vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
+	vintage.bUpdateImmediately = true;
+	vintage.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
+		EngFuncs::CvarSetValue( "rt_ef_vintage", float( val ) );
+		if( val != 0 )
+		{
+			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0 );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0 );
+		}
+	};
 
-	overbright.szName = L( "Overbrights" );
-	overbright.SetCoord( 72, height );
-	height += 50;
+	vsync.szName = L( "VSync" );
+	vsync.SetCoord( 390, 400 );
 
-	filtering.szName = L( "Texture filtering" );
-	filtering.SetCoord( 72, height );
-	height += 50;
+	muzzleFlash.szName = L( "Muzzle flash" );
+	muzzleFlash.SetCoord( 390, 445 );
 
-	hudscale.szName = L( "Auto scale HUD" );
-	hudscale.SetCoord( 72, height );
-	height += 50;
+	nearestTextureFiltering.szName = L( "Pixelated textures" );
+	nearestTextureFiltering.SetCoord( 390, 490 );
+
+	classic.szName = L( "Classic lighting" );
+	classic.SetCoord( 390, 535 );
+
+	noServerVis.szName = L( "No server cull" );
+	noServerVis.SetCoord( 390, 580 );
+
+	volumetric.szName = L( "Volumetrics" );
+	volumetric.SetCoord( 390, 625 );
+
+	bloom.szName = L( "Bloom" );
+	bloom.SetCoord( 390, 670 );
+
+	dirt.szName = L( "Lens dirt" );
+	dirt.SetCoord( 390, 715 );
 
 	msgBox.SetMessage( L( "^1WARNING: This is an experimental option and turning it on might break mods!^7\n\nReload the game or reconnect to the server to apply the settings."));
 	msgBox.onNegative.pExtra = &hudscale;
@@ -275,110 +270,77 @@ void CMenuVidOptions::_Init( void )
 #if LEGACY_VIEWSIZE
 	AddItem( screenSize );
 #endif
-	AddItem( gammaIntensity );
-	AddItem( brightness );
 	AddItem( detailtex );
-	AddItem( vbo );
-	AddItem( swwater );
-	AddItem( overbright );
-	AddItem( filtering );
 	AddItem( hudscale );
-	AddItem( testImage );
+	AddItem( nvDlss );
+	AddItem( fsr3 );
+	AddItem( vintage );
+	AddItem( vsync );
+	AddItem( muzzleFlash );
+	AddItem( nearestTextureFiltering );
+	AddItem( classic );
+	AddItem( noServerVis );
+	AddItem( volumetric );
+	AddItem( bloom );
+	AddItem( dirt );
 
 #if LEGACY_VIEWSIZE
 	screenSize.LinkCvar( "viewsize" );
 #endif
 
-	gammaIntensity.LinkCvar( "gamma" );
-	brightness.LinkCvar( "brightness" );
-
 	detailtex.LinkCvar( "r_detailtextures" );
-	swwater.LinkCvar( "r_ripple" );
-	vbo.LinkCvar( "gl_vbo" );
-	overbright.LinkCvar( "gl_overbright" );
-	// skip filtering.LinkCvar, different names in ref_gl and ref_soft
 	hudscale.LinkCvar( "hud_scale" );
-}
 
-void CMenuVidOptions::_VidInit()
-{
-	outlineWidth = 2;
-	UI_ScaleCoords( NULL, NULL, &outlineWidth, NULL );
+	// ray traced renderer options
+	vsync.LinkCvar( "rt_vsync" );
+	vsync.bUpdateImmediately = true;
+	muzzleFlash.LinkCvar( "rt_mzlflash" );
+	muzzleFlash.bUpdateImmediately = true;
+	nearestTextureFiltering.LinkCvar( "rt_texture_nearest" );
+	nearestTextureFiltering.bUpdateImmediately = true;
+	classic.LinkCvar( "rt_classic" );
+	classic.bUpdateImmediately = true;
+	noServerVis.LinkCvar( "sv_novis" );
+	noServerVis.bUpdateImmediately = true;
+	volumetric.LinkCvar( "rt_volume_type" );
+	volumetric.bUpdateImmediately = true;
+	bloom.LinkCvar( "rt_bloom" );
+	bloom.bUpdateImmediately = true;
+	dirt.LinkCvar( "rt_bloom_dirt_enable" );
+	dirt.bUpdateImmediately = true;
 }
 
 void CMenuVidOptions::Reload()
 {
 	bool gl_active = !strnicmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "gl", 2 );
-	bool soft_active = !stricmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "soft" );
 
 	detailtex.SetGrayed( !gl_active );
 	detailtex.SetInactive( !gl_active );
 
-	vbo.SetGrayed( !gl_active );
-	vbo.SetInactive( !gl_active );
-
-	if( gl_active )
-	{
-		if( EngFuncs::textfuncs.pfnIsCvarReadOnly( "gl_vbo" ) > 0 )
-		{
-			SET_EVENT_MULTI( vbo.onCvarChange,
-			{
-				CMenuCheckBox *cb = (CMenuCheckBox *)pSelf;
-				cb->bChecked = false;
-				UI_ShowMessageBox( L( "Not supported on your GPU" ));
-			});
-
-			vbo.onCvarWrite = CEventCallback::NoopCb;
-		}
-		else
-		{
-			vbo.onCvarWrite.Reset();
-			vbo.onCvarChange.Reset();
-		}
-	}
-
-	swwater.SetGrayed( !gl_active );
-	swwater.SetInactive( !gl_active );
-
-	overbright.SetGrayed( !gl_active );
-	overbright.SetInactive( !gl_active );
-
-	if( soft_active || gl_active )
-	{
-		filtering.SetGrayed( false );
-		filtering.SetInactive( false );
-
-		if( soft_active )
-		{
-			// no need to invert, 0 disables filtering
-			filtering.LinkCvar( "sw_texfilt" );
-		}
-		else
-		{
-			SET_EVENT_MULTI( filtering.onCvarGet,
-			{
-				CMenuCheckBox *cb = (CMenuCheckBox *)pSelf;
-
-				if( EngFuncs::GetCvarFloat( cb->CvarName( )))
-					cb->bChecked = false;
-				else cb->bChecked = true;
-			});
-			SET_EVENT_MULTI( filtering.onCvarWrite,
-			{
-				CMenuCheckBox *cb = (CMenuCheckBox *)pSelf;
-				if( cb->bChecked )
-					EngFuncs::CvarSetValue( cb->CvarName(), 0.0f );
-				else EngFuncs::CvarSetValue( cb->CvarName(), 1.0f );
-			});
-
-			filtering.LinkCvar( "gl_texture_nearest" );
-		}
-	}
-	else
-	{
-		filtering.SetGrayed( true );
-		filtering.SetInactive( true );
-	}
+	// ray traced renderer options are only meaningful with the GL renderer
+	bool rt_active = gl_active;
+	nvDlss.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ));
+	nvDlss.SetInactive( !rt_active );
+	fsr3.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ));
+	fsr3.SetInactive( !rt_active );
+	vintage.SetGrayed( !rt_active );
+	vintage.SetInactive( !rt_active );
+	vsync.SetGrayed( !rt_active );
+	vsync.SetInactive( !rt_active );
+	muzzleFlash.SetGrayed( !rt_active );
+	muzzleFlash.SetInactive( !rt_active );
+	nearestTextureFiltering.SetGrayed( !rt_active );
+	nearestTextureFiltering.SetInactive( !rt_active );
+	classic.SetGrayed( !rt_active );
+	classic.SetInactive( !rt_active );
+	noServerVis.SetGrayed( !rt_active );
+	noServerVis.SetInactive( !rt_active );
+	volumetric.SetGrayed( !rt_active );
+	volumetric.SetInactive( !rt_active );
+	bloom.SetGrayed( !rt_active );
+	bloom.SetInactive( !rt_active );
+	dirt.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "rt_bloom" ));
+	dirt.SetInactive( !rt_active );
 
 	CMenuFramework::Reload();
 }
