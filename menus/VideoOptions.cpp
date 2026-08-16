@@ -90,9 +90,11 @@ public:
 	CMenuCheckBox volumetric;
 	CMenuCheckBox bloom;
 	CMenuCheckBox dirt;
+	CMenuCheckBox fsr3FrameGen;
 	CMenuSpinControl nvDlss;
 	CMenuSpinControl fsr3;
 	CMenuSpinControl vintage;
+	CMenuYesNoMessageBox frameGenMsgBox;
 };
 
 /*
@@ -219,6 +221,17 @@ void CMenuVidOptions::_Init( void )
 	dirt.szName = L( "Lens dirt" );
 	dirt.SetCoord( 390, 715 );
 
+	fsr3FrameGen.szName = L( "FSR3 Frame Gen" );
+	fsr3FrameGen.SetCoord( 660, 340 );
+
+	frameGenMsgBox.SetMessage( L( "^3FSR3 Frame Generation setting has been changed.^7\n\nPlease restart the game for this change to take effect." ) );
+
+	SET_EVENT_MULTI( fsr3FrameGen.onChanged,
+	{
+		CMenuVidOptions *parent = (CMenuVidOptions *)pSelf->Parent();
+		parent->frameGenMsgBox.Show();
+	});
+
 	msgBox.SetMessage( L( "^1WARNING: This is an experimental option and turning it on might break mods!^7\n\nReload the game or reconnect to the server to apply the settings."));
 	msgBox.onNegative.pExtra = &hudscale;
 	SET_EVENT_MULTI( msgBox.onNegative,
@@ -274,6 +287,7 @@ void CMenuVidOptions::_Init( void )
 	AddItem( hudscale );
 	AddItem( nvDlss );
 	AddItem( fsr3 );
+	AddItem( fsr3FrameGen );
 	AddItem( vintage );
 	AddItem( vsync );
 	AddItem( muzzleFlash );
@@ -308,6 +322,8 @@ void CMenuVidOptions::_Init( void )
 	bloom.bUpdateImmediately = true;
 	dirt.LinkCvar( "rt_bloom_dirt_enable" );
 	dirt.bUpdateImmediately = true;
+	fsr3FrameGen.LinkCvar( "rt_fsr3_framegen" );
+	fsr3FrameGen.bUpdateImmediately = true;
 }
 
 void CMenuVidOptions::Reload()
@@ -323,6 +339,8 @@ void CMenuVidOptions::Reload()
 	nvDlss.SetInactive( !rt_active );
 	fsr3.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ));
 	fsr3.SetInactive( !rt_active );
+	fsr3FrameGen.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ));
+	fsr3FrameGen.SetInactive( !rt_active );
 	vintage.SetGrayed( !rt_active );
 	vintage.SetInactive( !rt_active );
 	vsync.SetGrayed( !rt_active );
