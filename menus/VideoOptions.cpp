@@ -118,7 +118,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel nvDlssModel( pNvDlssNames, V_ARRAYSIZE( pNvDlssNames ) );
 	nvDlss.szName = "NVIDIA DLSS";
-	nvDlss.SetRect( 310, 265, 200, 32 );
+	nvDlss.SetRect( 260, 265, 230, 32 );
 	nvDlss.SetCharSize( QM_SMALLFONT );
 	nvDlss.Setup( &nvDlssModel );
 	nvDlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
@@ -134,7 +134,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
 	fsr3.szName = "AMD FSR3";
-	fsr3.SetRect( 530, 265, 200, 32 );
+	fsr3.SetRect( 600, 265, 230, 32 );
 	fsr3.SetCharSize( QM_SMALLFONT );
 	fsr3.Setup( &fsr3Model );
 	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
@@ -150,7 +150,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
 	vintage.szName = "Vintage";
-	vintage.SetRect( 310, 315, 200, 32 );
+	vintage.SetRect( 260, 315, 230, 32 );
 	vintage.SetCharSize( QM_SMALLFONT );
 	vintage.Setup( &vintageModel );
 	vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
@@ -166,43 +166,43 @@ void CMenuVidOptions::_Init( void )
 	};
 
 	fsr3FrameGen.szName = L( "FSR3 Frame Gen" );
-	fsr3FrameGen.SetCoord( 530, 315 );
+	fsr3FrameGen.SetCoord( 600, 315 );
 
 	vsync.szName = L( "VSync" );
-	vsync.SetCoord( 310, 375 );
+	vsync.SetCoord( 260, 375 );
 
 	nearestTextureFiltering.szName = L( "Pixelated textures" );
-	nearestTextureFiltering.SetCoord( 310, 415 );
+	nearestTextureFiltering.SetCoord( 260, 415 );
 
 	volumetric.szName = L( "Volumetrics" );
-	volumetric.SetCoord( 310, 455 );
+	volumetric.SetCoord( 260, 455 );
 
 	dirt.szName = L( "Lens dirt" );
-	dirt.SetCoord( 310, 495 );
+	dirt.SetCoord( 260, 495 );
 
 	antiFirefly.szName = L( "Anti-firefly" );
-	antiFirefly.SetCoord( 310, 535 );
+	antiFirefly.SetCoord( 260, 535 );
 
 	hudscale.szName = L( "Auto scale HUD" );
-	hudscale.SetCoord( 310, 575 );
+	hudscale.SetCoord( 260, 575 );
 
 	muzzleFlash.szName = L( "Muzzle flash" );
-	muzzleFlash.SetCoord( 530, 375 );
+	muzzleFlash.SetCoord( 600, 375 );
 
 	noServerVis.szName = L( "No server cull" );
-	noServerVis.SetCoord( 530, 415 );
+	noServerVis.SetCoord( 600, 415 );
 
 	bloom.szName = L( "Bloom" );
-	bloom.SetCoord( 530, 455 );
+	bloom.SetCoord( 600, 455 );
 
 	detailtex.szName = L( "Detail textures" );
-	detailtex.SetCoord( 530, 495 );
+	detailtex.SetCoord( 600, 495 );
 
 	indirect2Bounces.szName = L( "2nd indirect bounce" );
-	indirect2Bounces.SetCoord( 530, 535 );
+	indirect2Bounces.SetCoord( 600, 535 );
 
 	waterWarp.szName = L( "Underwater warp" );
-	waterWarp.SetCoord( 530, 575 );
+	waterWarp.SetCoord( 600, 575 );
 
 	frameGenMsgBox.SetMessage( L( "^3FSR3 Frame Generation setting has been changed.^7\n\nPlease restart the game for this change to take effect." ) );
 
@@ -310,7 +310,7 @@ void CMenuVidOptions::Draw( void )
 {
 	CMenuFramework::Draw();
 
-	UI_DrawRectangleExt( 310 * uiStatic.scaleX, 358 * uiStatic.scaleY, 420 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
+	UI_DrawRectangleExt( 260 * uiStatic.scaleX, 358 * uiStatic.scaleY, 630 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
 }
 
 void CMenuVidOptions::Reload()
