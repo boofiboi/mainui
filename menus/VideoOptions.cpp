@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Framework.h"
 #include "Bitmap.h"
 #include "PicButton.h"
-#include "Action.h"
 #include "Slider.h"
 #include "CheckBox.h"
 #include "YesNoMessageBox.h"
@@ -72,7 +71,6 @@ public:
 	void SaveAndPopMenu() override;
 
 	CMenuPicButton	done;
-	CMenuAction		rtTitle;
 
 #if LEGACY_VIEWSIZE
 	CMenuSlider	screenSize;
@@ -88,6 +86,9 @@ public:
 	CMenuCheckBox volumetric;
 	CMenuCheckBox bloom;
 	CMenuCheckBox dirt;
+	CMenuCheckBox antiFirefly;
+	CMenuCheckBox indirect2Bounces;
+	CMenuCheckBox waterWarp;
 	CMenuCheckBox fsr3FrameGen;
 	CMenuSpinControl nvDlss;
 	CMenuSpinControl fsr3;
@@ -115,16 +116,9 @@ void CMenuVidOptions::_Init( void )
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 
-	rtTitle.iFlags = QMF_INACTIVE | QMF_DROPSHADOW;
-	rtTitle.szName = L( "Ray Tracing" );
-	rtTitle.colorBase = uiColorHelp;
-	rtTitle.SetCharSize( QM_SMALLFONT );
-	rtTitle.eTextAlignment = QM_CENTER;
-	rtTitle.SetRect( 310, 240, 420, 24 );
-
 	static CStringArrayModel nvDlssModel( pNvDlssNames, V_ARRAYSIZE( pNvDlssNames ) );
 	nvDlss.szName = "NVIDIA DLSS";
-	nvDlss.SetRect( 310, 275, 200, 32 );
+	nvDlss.SetRect( 310, 265, 200, 32 );
 	nvDlss.SetCharSize( QM_SMALLFONT );
 	nvDlss.Setup( &nvDlssModel );
 	nvDlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
@@ -140,7 +134,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
 	fsr3.szName = "AMD FSR3";
-	fsr3.SetRect( 530, 275, 200, 32 );
+	fsr3.SetRect( 530, 265, 200, 32 );
 	fsr3.SetCharSize( QM_SMALLFONT );
 	fsr3.Setup( &fsr3Model );
 	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
@@ -156,7 +150,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
 	vintage.szName = "Vintage";
-	vintage.SetRect( 310, 325, 200, 32 );
+	vintage.SetRect( 310, 315, 200, 32 );
 	vintage.SetCharSize( QM_SMALLFONT );
 	vintage.Setup( &vintageModel );
 	vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
@@ -172,34 +166,43 @@ void CMenuVidOptions::_Init( void )
 	};
 
 	fsr3FrameGen.szName = L( "FSR3 Frame Gen" );
-	fsr3FrameGen.SetCoord( 530, 325 );
+	fsr3FrameGen.SetCoord( 530, 315 );
 
 	vsync.szName = L( "VSync" );
-	vsync.SetCoord( 310, 385 );
+	vsync.SetCoord( 310, 375 );
 
 	nearestTextureFiltering.szName = L( "Pixelated textures" );
-	nearestTextureFiltering.SetCoord( 310, 425 );
+	nearestTextureFiltering.SetCoord( 310, 415 );
 
 	volumetric.szName = L( "Volumetrics" );
-	volumetric.SetCoord( 310, 465 );
+	volumetric.SetCoord( 310, 455 );
 
 	dirt.szName = L( "Lens dirt" );
-	dirt.SetCoord( 310, 505 );
+	dirt.SetCoord( 310, 495 );
+
+	antiFirefly.szName = L( "Anti-firefly" );
+	antiFirefly.SetCoord( 310, 535 );
 
 	hudscale.szName = L( "Auto scale HUD" );
-	hudscale.SetCoord( 310, 545 );
+	hudscale.SetCoord( 310, 575 );
 
 	muzzleFlash.szName = L( "Muzzle flash" );
-	muzzleFlash.SetCoord( 530, 385 );
+	muzzleFlash.SetCoord( 530, 375 );
 
 	noServerVis.szName = L( "No server cull" );
-	noServerVis.SetCoord( 530, 425 );
+	noServerVis.SetCoord( 530, 415 );
 
 	bloom.szName = L( "Bloom" );
-	bloom.SetCoord( 530, 465 );
+	bloom.SetCoord( 530, 455 );
 
 	detailtex.szName = L( "Detail textures" );
-	detailtex.SetCoord( 530, 505 );
+	detailtex.SetCoord( 530, 495 );
+
+	indirect2Bounces.szName = L( "2nd indirect bounce" );
+	indirect2Bounces.SetCoord( 530, 535 );
+
+	waterWarp.szName = L( "Underwater warp" );
+	waterWarp.SetCoord( 530, 575 );
 
 	frameGenMsgBox.SetMessage( L( "^3FSR3 Frame Generation setting has been changed.^7\n\nPlease restart the game for this change to take effect." ) );
 
@@ -252,7 +255,6 @@ void CMenuVidOptions::_Init( void )
 
 	AddItem( banner );
 	AddItem( done );
-	AddItem( rtTitle );
 #if LEGACY_VIEWSIZE
 	AddItem( screenSize );
 #endif
@@ -267,7 +269,10 @@ void CMenuVidOptions::_Init( void )
 	AddItem( volumetric );
 	AddItem( bloom );
 	AddItem( dirt );
+	AddItem( antiFirefly );
 	AddItem( detailtex );
+	AddItem( indirect2Bounces );
+	AddItem( waterWarp );
 	AddItem( hudscale );
 
 #if LEGACY_VIEWSIZE
@@ -291,6 +296,12 @@ void CMenuVidOptions::_Init( void )
 	bloom.bUpdateImmediately = true;
 	dirt.LinkCvar( "rt_bloom_dirt_enable" );
 	dirt.bUpdateImmediately = true;
+	antiFirefly.LinkCvar( "rt_antifirefly" );
+	antiFirefly.bUpdateImmediately = true;
+	indirect2Bounces.LinkCvar( "rt_indir2bounces" );
+	indirect2Bounces.bUpdateImmediately = true;
+	waterWarp.LinkCvar( "rt_ef_water" );
+	waterWarp.bUpdateImmediately = true;
 	fsr3FrameGen.LinkCvar( "rt_fsr3_framegen" );
 	fsr3FrameGen.bUpdateImmediately = true;
 }
@@ -299,7 +310,7 @@ void CMenuVidOptions::Draw( void )
 {
 	CMenuFramework::Draw();
 
-	UI_DrawRectangleExt( 310 * uiStatic.scaleX, 368 * uiStatic.scaleY, 420 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
+	UI_DrawRectangleExt( 310 * uiStatic.scaleX, 358 * uiStatic.scaleY, 420 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
 }
 
 void CMenuVidOptions::Reload()
@@ -332,6 +343,12 @@ void CMenuVidOptions::Reload()
 	bloom.SetInactive( !rt_active );
 	dirt.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "rt_bloom" ));
 	dirt.SetInactive( !rt_active );
+	antiFirefly.SetGrayed( !rt_active );
+	antiFirefly.SetInactive( !rt_active );
+	indirect2Bounces.SetGrayed( !rt_active );
+	indirect2Bounces.SetInactive( !rt_active );
+	waterWarp.SetGrayed( !rt_active );
+	waterWarp.SetInactive( !rt_active );
 
 	CMenuFramework::Reload();
 }
