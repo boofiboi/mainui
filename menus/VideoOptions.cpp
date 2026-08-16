@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Framework.h"
 #include "Bitmap.h"
 #include "PicButton.h"
+#include "Action.h"
 #include "Slider.h"
 #include "CheckBox.h"
 #include "YesNoMessageBox.h"
@@ -31,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define LEGACY_VIEWSIZE 0
 
-// options for the ray traced renderer
 static const char *pNvDlssNames[] =
 {
 	L( "Off" ),
@@ -41,7 +41,6 @@ static const char *pNvDlssNames[] =
 	L( "Ultra Performance" ),
 };
 
-// must match the rt_upscale_fsr3 cvar modes from gl_opengl.c
 static const char *pFsr3Names[] =
 {
 	L( "Off" ),
@@ -52,7 +51,6 @@ static const char *pFsr3Names[] =
 	L( "Ultra Performance" ),
 };
 
-// must match RT_VINTAGE enum from gl_rmain.c
 static const char *pVintageNames[] =
 {
 	L( "Off" ),
@@ -67,12 +65,14 @@ class CMenuVidOptions : public CMenuFramework
 private:
 	void _Init() override;
 	void Reload() override;
+	void Draw() override;
 
 public:
 	CMenuVidOptions() : CMenuFramework( "CMenuVidOptions" ) { }
 	void SaveAndPopMenu() override;
 
 	CMenuPicButton	done;
+	CMenuAction		rtTitle;
 
 #if LEGACY_VIEWSIZE
 	CMenuSlider	screenSize;
@@ -81,11 +81,9 @@ public:
 	CMenuCheckBox	hudscale;
 	CMenuYesNoMessageBox	msgBox;
 
-	// ray traced renderer options
 	CMenuCheckBox vsync;
 	CMenuCheckBox muzzleFlash;
 	CMenuCheckBox nearestTextureFiltering;
-	CMenuCheckBox classic;
 	CMenuCheckBox noServerVis;
 	CMenuCheckBox volumetric;
 	CMenuCheckBox bloom;
@@ -97,11 +95,6 @@ public:
 	CMenuYesNoMessageBox frameGenMsgBox;
 };
 
-/*
-=================
-CMenuVidOptions::SaveAndPopMenu
-=================
-*/
 void CMenuVidOptions::SaveAndPopMenu( void )
 {
 #if LEGACY_VIEWSIZE
@@ -113,44 +106,25 @@ void CMenuVidOptions::SaveAndPopMenu( void )
 	CMenuFramework::SaveAndPopMenu();
 }
 
-/*
-=================
-CMenuVidOptions::Init
-=================
-*/
 void CMenuVidOptions::_Init( void )
 {
 	banner.SetPicture( ART_BANNER );
 
-	int height = 280;
-
-#if LEGACY_VIEWSIZE
-	screenSize.szName = L( "Screen size" );
-	screenSize.SetCoord( 72, height );
-	screenSize.Setup( 30, 120, 10 );
-	screenSize.onChanged = CMenuEditable::WriteCvarCb;
-
-	height += 60;
-#endif
-
-	detailtex.szName = L( "Detail textures" );
-	detailtex.SetCoord( 72, height );
-	height += 50;
-
-	hudscale.szName = L( "Auto scale HUD" );
-	hudscale.SetCoord( 72, height );
-	height += 50;
-
 	done.szName = L( "GameUI_OK" );
-	done.SetCoord( 72, height );
+	done.SetCoord( 72, 380 );
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
-	height += 60;
 
-	// ray traced renderer options
+	rtTitle.iFlags = QMF_INACTIVE | QMF_DROPSHADOW;
+	rtTitle.szName = L( "Ray Tracing" );
+	rtTitle.colorBase = uiColorHelp;
+	rtTitle.SetCharSize( QM_SMALLFONT );
+	rtTitle.eTextAlignment = QM_CENTER;
+	rtTitle.SetRect( 310, 240, 420, 24 );
+
 	static CStringArrayModel nvDlssModel( pNvDlssNames, V_ARRAYSIZE( pNvDlssNames ) );
 	nvDlss.szName = "NVIDIA DLSS";
-	nvDlss.SetRect( 390, 280, 250, 32 );
+	nvDlss.SetRect( 310, 275, 200, 32 );
 	nvDlss.SetCharSize( QM_SMALLFONT );
 	nvDlss.Setup( &nvDlssModel );
 	nvDlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
@@ -166,7 +140,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
 	fsr3.szName = "AMD FSR3";
-	fsr3.SetRect( 660, 280, 250, 32 );
+	fsr3.SetRect( 530, 275, 200, 32 );
 	fsr3.SetCharSize( QM_SMALLFONT );
 	fsr3.Setup( &fsr3Model );
 	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
@@ -182,7 +156,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
 	vintage.szName = "Vintage";
-	vintage.SetRect( 390, 340, 250, 32 );
+	vintage.SetRect( 310, 325, 200, 32 );
 	vintage.SetCharSize( QM_SMALLFONT );
 	vintage.Setup( &vintageModel );
 	vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
@@ -197,32 +171,35 @@ void CMenuVidOptions::_Init( void )
 		}
 	};
 
-	vsync.szName = L( "VSync" );
-	vsync.SetCoord( 390, 400 );
+	fsr3FrameGen.szName = L( "FSR3 Frame Gen" );
+	fsr3FrameGen.SetCoord( 530, 325 );
 
-	muzzleFlash.szName = L( "Muzzle flash" );
-	muzzleFlash.SetCoord( 390, 445 );
+	vsync.szName = L( "VSync" );
+	vsync.SetCoord( 310, 385 );
 
 	nearestTextureFiltering.szName = L( "Pixelated textures" );
-	nearestTextureFiltering.SetCoord( 390, 490 );
-
-	classic.szName = L( "Classic lighting" );
-	classic.SetCoord( 390, 535 );
-
-	noServerVis.szName = L( "No server cull" );
-	noServerVis.SetCoord( 390, 580 );
+	nearestTextureFiltering.SetCoord( 310, 425 );
 
 	volumetric.szName = L( "Volumetrics" );
-	volumetric.SetCoord( 390, 625 );
-
-	bloom.szName = L( "Bloom" );
-	bloom.SetCoord( 390, 670 );
+	volumetric.SetCoord( 310, 465 );
 
 	dirt.szName = L( "Lens dirt" );
-	dirt.SetCoord( 390, 715 );
+	dirt.SetCoord( 310, 505 );
 
-	fsr3FrameGen.szName = L( "FSR3 Frame Gen" );
-	fsr3FrameGen.SetCoord( 660, 340 );
+	hudscale.szName = L( "Auto scale HUD" );
+	hudscale.SetCoord( 310, 545 );
+
+	muzzleFlash.szName = L( "Muzzle flash" );
+	muzzleFlash.SetCoord( 530, 385 );
+
+	noServerVis.szName = L( "No server cull" );
+	noServerVis.SetCoord( 530, 425 );
+
+	bloom.szName = L( "Bloom" );
+	bloom.SetCoord( 530, 465 );
+
+	detailtex.szName = L( "Detail textures" );
+	detailtex.SetCoord( 530, 505 );
 
 	frameGenMsgBox.SetMessage( L( "^3FSR3 Frame Generation setting has been changed.^7\n\nPlease restart the game for this change to take effect." ) );
 
@@ -248,8 +225,6 @@ void CMenuVidOptions::_Init( void )
 
 		if( EngFuncs::ClientInGame( ))
 		{
-			// bring up warning message box
-			// FIXME: try to save the game, apply the settings, and then load it back. This will be useful when changing resolution too.
 			parent->msgBox.Show();
 		}
 	});
@@ -260,9 +235,6 @@ void CMenuVidOptions::_Init( void )
 
 		if( cb->bChecked )
 		{
-			// automatically scale HUD as if we have 1024x768 screen
-			// (saving aspect ratio)
-			// FIXME: allow configuring this value?
 			EngFuncs::CvarSetValue( cb->CvarName(), 1024.0f );
 		}
 		else
@@ -280,11 +252,10 @@ void CMenuVidOptions::_Init( void )
 
 	AddItem( banner );
 	AddItem( done );
+	AddItem( rtTitle );
 #if LEGACY_VIEWSIZE
 	AddItem( screenSize );
 #endif
-	AddItem( detailtex );
-	AddItem( hudscale );
 	AddItem( nvDlss );
 	AddItem( fsr3 );
 	AddItem( fsr3FrameGen );
@@ -292,11 +263,12 @@ void CMenuVidOptions::_Init( void )
 	AddItem( vsync );
 	AddItem( muzzleFlash );
 	AddItem( nearestTextureFiltering );
-	AddItem( classic );
 	AddItem( noServerVis );
 	AddItem( volumetric );
 	AddItem( bloom );
 	AddItem( dirt );
+	AddItem( detailtex );
+	AddItem( hudscale );
 
 #if LEGACY_VIEWSIZE
 	screenSize.LinkCvar( "viewsize" );
@@ -305,15 +277,12 @@ void CMenuVidOptions::_Init( void )
 	detailtex.LinkCvar( "r_detailtextures" );
 	hudscale.LinkCvar( "hud_scale" );
 
-	// ray traced renderer options
 	vsync.LinkCvar( "rt_vsync" );
 	vsync.bUpdateImmediately = true;
 	muzzleFlash.LinkCvar( "rt_mzlflash" );
 	muzzleFlash.bUpdateImmediately = true;
 	nearestTextureFiltering.LinkCvar( "rt_texture_nearest" );
 	nearestTextureFiltering.bUpdateImmediately = true;
-	classic.LinkCvar( "rt_classic" );
-	classic.bUpdateImmediately = true;
 	noServerVis.LinkCvar( "sv_novis" );
 	noServerVis.bUpdateImmediately = true;
 	volumetric.LinkCvar( "rt_volume_type" );
@@ -326,6 +295,13 @@ void CMenuVidOptions::_Init( void )
 	fsr3FrameGen.bUpdateImmediately = true;
 }
 
+void CMenuVidOptions::Draw( void )
+{
+	CMenuFramework::Draw();
+
+	UI_DrawRectangleExt( 310 * uiStatic.scaleX, 368 * uiStatic.scaleY, 420 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
+}
+
 void CMenuVidOptions::Reload()
 {
 	bool gl_active = !strnicmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "gl", 2 );
@@ -333,7 +309,6 @@ void CMenuVidOptions::Reload()
 	detailtex.SetGrayed( !gl_active );
 	detailtex.SetInactive( !gl_active );
 
-	// ray traced renderer options are only meaningful with the GL renderer
 	bool rt_active = gl_active;
 	nvDlss.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ));
 	nvDlss.SetInactive( !rt_active );
@@ -349,8 +324,6 @@ void CMenuVidOptions::Reload()
 	muzzleFlash.SetInactive( !rt_active );
 	nearestTextureFiltering.SetGrayed( !rt_active );
 	nearestTextureFiltering.SetInactive( !rt_active );
-	classic.SetGrayed( !rt_active );
-	classic.SetInactive( !rt_active );
 	noServerVis.SetGrayed( !rt_active );
 	noServerVis.SetInactive( !rt_active );
 	volumetric.SetGrayed( !rt_active );
