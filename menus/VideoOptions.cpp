@@ -102,13 +102,13 @@ void CMenuVidOptions::_Init( void )
 {
 	banner.SetPicture( ART_BANNER );
 
-	done.szName = L( "GameUI_OK" );
+	done.SetNameAndStatus( L( "GameUI_OK" ), L( "Save and close options" ) );
 	done.SetCoord( 72, 380 );
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 
 	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
-	fsr3.szName = "AMD FSR3";
+	fsr3.SetNameAndStatus( "AMD FSR3", L( "AMD FidelityFX Super Resolution 3 upscaling" ) );
 	fsr3.SetRect( 260, 265, 230, 32 );
 	fsr3.SetCharSize( QM_SMALLFONT );
 	fsr3.Setup( &fsr3Model );
@@ -125,7 +125,7 @@ void CMenuVidOptions::_Init( void )
 	};
 
 	static CStringArrayModel fsr4Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
-	fsr4.szName = "AMD FSR4";
+	fsr4.SetNameAndStatus( "AMD FSR4", L( "AMD FidelityFX Super Resolution 4 upscaling (RDNA 3+ only)" ) );
 	fsr4.SetRect( 600, 265, 230, 32 );
 	fsr4.SetCharSize( QM_SMALLFONT );
 	fsr4.Setup( &fsr4Model );
@@ -142,7 +142,7 @@ void CMenuVidOptions::_Init( void )
 	};
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
-	vintage.szName = "Vintage";
+	vintage.SetNameAndStatus( "Vintage", L( "Pixelated vintage rendering filter" ) );
 	vintage.SetRect( 260, 315, 230, 32 );
 	vintage.SetCharSize( QM_SMALLFONT );
 	vintage.Setup( &vintageModel );
@@ -158,43 +158,43 @@ void CMenuVidOptions::_Init( void )
 		}
 	};
 
-	fsr3FrameGen.szName = L( "FSR3 Frame Gen" );
+	fsr3FrameGen.SetNameAndStatus( L( "FSR3 Frame Gen" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
 	fsr3FrameGen.SetCoord( 600, 315 );
 
-	vsync.szName = L( "VSync" );
+	vsync.SetNameAndStatus( L( "VSync" ), L( "Enable vertical synchronization" ) );
 	vsync.SetCoord( 260, 375 );
 
-	nearestTextureFiltering.szName = L( "Pixelated textures" );
+	nearestTextureFiltering.SetNameAndStatus( L( "Pixelated textures" ), L( "Disable texture filtering for pixelated retro texture look" ) );
 	nearestTextureFiltering.SetCoord( 260, 415 );
 
-	volumetric.szName = L( "Volumetrics" );
+	volumetric.SetNameAndStatus( L( "Volumetrics" ), L( "Enable ray-traced volumetric lighting and fog" ) );
 	volumetric.SetCoord( 260, 455 );
 
-	dirt.szName = L( "Lens dirt" );
+	dirt.SetNameAndStatus( L( "Lens dirt" ), L( "Lens dirt effect on bright light sources" ) );
 	dirt.SetCoord( 260, 495 );
 
-	antiFirefly.szName = L( "Anti-firefly" );
+	antiFirefly.SetNameAndStatus( L( "Anti-firefly" ), L( "Suppress high-energy specular firefly noise" ) );
 	antiFirefly.SetCoord( 260, 535 );
 
-	hudscale.szName = L( "Auto scale HUD" );
+	hudscale.SetNameAndStatus( L( "Auto scale HUD" ), L( "Automatically scale HUD to match screen resolution" ) );
 	hudscale.SetCoord( 260, 575 );
 
-	muzzleFlash.szName = L( "Muzzle flash" );
+	muzzleFlash.SetNameAndStatus( L( "Muzzle flash" ), L( "Ray-traced dynamic light for weapon muzzle flashes" ) );
 	muzzleFlash.SetCoord( 600, 375 );
 
-	noServerVis.szName = L( "No server cull" );
+	noServerVis.SetNameAndStatus( L( "No server cull" ), L( "Disable server-side PVS culling so entire map geometry is ray-traced" ) );
 	noServerVis.SetCoord( 600, 415 );
 
-	bloom.szName = L( "Bloom" );
+	bloom.SetNameAndStatus( L( "Bloom" ), L( "Bloom post-processing on glowing and bright surfaces" ) );
 	bloom.SetCoord( 600, 455 );
 
-	detailtex.szName = L( "Detail textures" );
+	detailtex.SetNameAndStatus( L( "Detail textures" ), L( "Enable high-frequency detail textures overlay" ) );
 	detailtex.SetCoord( 600, 495 );
 
-	indirect2Bounces.szName = L( "2nd indirect bounce" );
+	indirect2Bounces.SetNameAndStatus( L( "2nd indirect bounce" ), L( "Calculate second bounce of indirect ray-traced lighting" ) );
 	indirect2Bounces.SetCoord( 600, 535 );
 
-	waterWarp.szName = L( "Underwater warp" );
+	waterWarp.SetNameAndStatus( L( "Underwater warp" ), L( "Screen distortion effect when submerged underwater" ) );
 	waterWarp.SetCoord( 600, 575 );
 
 	frameGenMsgBox.SetMessage( L( "^3FSR3 Frame Generation setting has been changed.^7\n\nPlease restart the game for this change to take effect." ) );
