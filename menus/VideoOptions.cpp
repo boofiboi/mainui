@@ -117,10 +117,11 @@ void CMenuVidOptions::_Init( void )
 	fsr3.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_upscale_fsr3", float( val ) );
-		if( val != 0 )
+		if( val != 0 && pSelf->Parent() )
 		{
-			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr4", 0 );
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->vintage.SetCurrentValue( 0.0f );
+			parent->fsr4.SetCurrentValue( 0.0f );
 		}
 	};
 
@@ -134,10 +135,11 @@ void CMenuVidOptions::_Init( void )
 	fsr4.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_upscale_fsr4", float( val ) );
-		if( val != 0 )
+		if( val != 0 && pSelf->Parent() )
 		{
-			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0 );
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->vintage.SetCurrentValue( 0.0f );
+			parent->fsr3.SetCurrentValue( 0.0f );
 		}
 	};
 
@@ -151,10 +153,11 @@ void CMenuVidOptions::_Init( void )
 	vintage.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_ef_vintage", float( val ) );
-		if( val != 0 )
+		if( val != 0 && pSelf->Parent() )
 		{
-			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0 );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr4", 0 );
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->fsr3.SetCurrentValue( 0.0f );
+			parent->fsr4.SetCurrentValue( 0.0f );
 		}
 	};
 
