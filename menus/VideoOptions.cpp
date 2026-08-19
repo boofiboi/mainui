@@ -83,7 +83,6 @@ public:
 	CMenuCheckBox fsr3FrameGen;
 	CMenuSpinControl fsr3;
 	CMenuSpinControl vintage;
-	CMenuYesNoMessageBox frameGenMsgBox;
 };
 
 void CMenuVidOptions::SaveAndPopMenu( void )
@@ -178,14 +177,6 @@ void CMenuVidOptions::_Init( void )
 
 	waterWarp.SetNameAndStatus( L( "Underwater warp" ), L( "Screen distortion effect when submerged underwater" ) );
 	waterWarp.SetCoord( 600, 575 );
-
-	frameGenMsgBox.SetMessage( L( "^3FSR3 Frame Generation setting has been changed.^7\n\nPlease restart the game for this change to take effect." ) );
-
-	SET_EVENT_MULTI( fsr3FrameGen.onChanged,
-	{
-		CMenuVidOptions *parent = (CMenuVidOptions *)pSelf->Parent();
-		parent->frameGenMsgBox.Show();
-	});
 
 	msgBox.SetMessage( L( "^1WARNING: This is an experimental option and turning it on might break mods!^7\n\nReload the game or reconnect to the server to apply the settings."));
 	msgBox.onNegative.pExtra = &hudscale;
