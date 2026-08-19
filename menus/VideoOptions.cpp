@@ -31,15 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define LEGACY_VIEWSIZE 0
 
-static const char *pNvDlssNames[] =
-{
-	L( "Off" ),
-	L( "Quality" ),
-	L( "Balanced" ),
-	L( "Performance" ),
-	L( "Ultra Performance" ),
-};
-
 static const char *pFsr3Names[] =
 {
 	L( "Off" ),
@@ -90,8 +81,8 @@ public:
 	CMenuCheckBox indirect2Bounces;
 	CMenuCheckBox waterWarp;
 	CMenuCheckBox fsr3FrameGen;
-	CMenuSpinControl nvDlss;
 	CMenuSpinControl fsr3;
+	CMenuSpinControl fsr4;
 	CMenuSpinControl vintage;
 	CMenuYesNoMessageBox frameGenMsgBox;
 };
@@ -116,25 +107,9 @@ void CMenuVidOptions::_Init( void )
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 
-	static CStringArrayModel nvDlssModel( pNvDlssNames, V_ARRAYSIZE( pNvDlssNames ) );
-	nvDlss.szName = "NVIDIA DLSS";
-	nvDlss.SetRect( 260, 265, 230, 32 );
-	nvDlss.SetCharSize( QM_SMALLFONT );
-	nvDlss.Setup( &nvDlssModel );
-	nvDlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
-	nvDlss.bUpdateImmediately = true;
-	nvDlss.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
-		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
-		EngFuncs::CvarSetValue( "rt_upscale_dlss", float( val ) );
-		if( val != 0 )
-		{
-			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
-		}
-	};
-
 	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
 	fsr3.szName = "AMD FSR3";
-	fsr3.SetRect( 600, 265, 230, 32 );
+	fsr3.SetRect( 260, 265, 230, 32 );
 	fsr3.SetCharSize( QM_SMALLFONT );
 	fsr3.Setup( &fsr3Model );
 	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
@@ -145,6 +120,24 @@ void CMenuVidOptions::_Init( void )
 		if( val != 0 )
 		{
 			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr4", 0 );
+		}
+	};
+
+	static CStringArrayModel fsr4Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
+	fsr4.szName = "AMD FSR4";
+	fsr4.SetRect( 600, 265, 230, 32 );
+	fsr4.SetCharSize( QM_SMALLFONT );
+	fsr4.Setup( &fsr4Model );
+	fsr4.LinkCvar( "rt_upscale_fsr4", CMenuEditable::CVAR_VALUE );
+	fsr4.bUpdateImmediately = true;
+	fsr4.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
+		EngFuncs::CvarSetValue( "rt_upscale_fsr4", float( val ) );
+		if( val != 0 )
+		{
+			EngFuncs::CvarSetValue( "rt_ef_vintage", 0 );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0 );
 		}
 	};
 
@@ -160,8 +153,8 @@ void CMenuVidOptions::_Init( void )
 		EngFuncs::CvarSetValue( "rt_ef_vintage", float( val ) );
 		if( val != 0 )
 		{
-			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0 );
 			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0 );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr4", 0 );
 		}
 	};
 
@@ -258,8 +251,8 @@ void CMenuVidOptions::_Init( void )
 #if LEGACY_VIEWSIZE
 	AddItem( screenSize );
 #endif
-	AddItem( nvDlss );
 	AddItem( fsr3 );
+	AddItem( fsr4 );
 	AddItem( fsr3FrameGen );
 	AddItem( vintage );
 	AddItem( vsync );
@@ -321,10 +314,10 @@ void CMenuVidOptions::Reload()
 	detailtex.SetInactive( !gl_active );
 
 	bool rt_active = gl_active;
-	nvDlss.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ));
-	nvDlss.SetInactive( !rt_active );
 	fsr3.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ));
 	fsr3.SetInactive( !rt_active );
+	fsr4.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr4_available" ));
+	fsr4.SetInactive( !rt_active );
 	fsr3FrameGen.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ));
 	fsr3FrameGen.SetInactive( !rt_active );
 	vintage.SetGrayed( !rt_active );
