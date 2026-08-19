@@ -82,7 +82,6 @@ public:
 	CMenuCheckBox waterWarp;
 	CMenuCheckBox fsr3FrameGen;
 	CMenuSpinControl fsr3;
-	CMenuSpinControl fsr4;
 	CMenuSpinControl vintage;
 	CMenuYesNoMessageBox frameGenMsgBox;
 };
@@ -121,25 +120,6 @@ void CMenuVidOptions::_Init( void )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			parent->vintage.SetCurrentValue( 0.0f );
-			parent->fsr4.SetCurrentValue( 0.0f );
-		}
-	};
-
-	static CStringArrayModel fsr4Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
-	fsr4.SetNameAndStatus( "AMD FSR4", L( "AMD FidelityFX Super Resolution 4 upscaling (RDNA 3+ only)" ) );
-	fsr4.SetRect( 600, 265, 230, 32 );
-	fsr4.SetCharSize( QM_SMALLFONT );
-	fsr4.Setup( &fsr4Model );
-	fsr4.LinkCvar( "rt_upscale_fsr4", CMenuEditable::CVAR_VALUE );
-	fsr4.bUpdateImmediately = true;
-	fsr4.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
-		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
-		EngFuncs::CvarSetValue( "rt_upscale_fsr4", float( val ) );
-		if( val != 0 && pSelf->Parent() )
-		{
-			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->vintage.SetCurrentValue( 0.0f );
-			parent->fsr3.SetCurrentValue( 0.0f );
 		}
 	};
 
@@ -157,7 +137,6 @@ void CMenuVidOptions::_Init( void )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			parent->fsr3.SetCurrentValue( 0.0f );
-			parent->fsr4.SetCurrentValue( 0.0f );
 		}
 	};
 
@@ -255,7 +234,6 @@ void CMenuVidOptions::_Init( void )
 	AddItem( screenSize );
 #endif
 	AddItem( fsr3 );
-	AddItem( fsr4 );
 	AddItem( fsr3FrameGen );
 	AddItem( vintage );
 	AddItem( vsync );
@@ -319,8 +297,6 @@ void CMenuVidOptions::Reload()
 	bool rt_active = gl_active;
 	fsr3.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ));
 	fsr3.SetInactive( !rt_active );
-	fsr4.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr4_available" ));
-	fsr4.SetInactive( !rt_active );
 	fsr3FrameGen.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ));
 	fsr3FrameGen.SetInactive( !rt_active );
 	vintage.SetGrayed( !rt_active );
