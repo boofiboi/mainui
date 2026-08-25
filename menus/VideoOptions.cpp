@@ -80,6 +80,7 @@ public:
 	CMenuCheckBox antiFirefly;
 	CMenuCheckBox indirect2Bounces;
 	CMenuCheckBox waterWarp;
+	CMenuCheckBox hdModels;
 	CMenuCheckBox fsr3FrameGen;
 	CMenuSpinControl fsr3;
 	CMenuSpinControl vintage;
@@ -178,6 +179,9 @@ void CMenuVidOptions::_Init( void )
 	waterWarp.SetNameAndStatus( L( "Underwater warp" ), L( "Screen distortion effect when submerged underwater" ) );
 	waterWarp.SetCoord( 600, 575 );
 
+	hdModels.SetNameAndStatus( L( "HD models" ), L( "Enable High Definition models from _hd content folder (requires reload/restart)" ) );
+	hdModels.SetCoord( 600, 615 );
+
 	msgBox.SetMessage( L( "^1WARNING: This is an experimental option and turning it on might break mods!^7\n\nReload the game or reconnect to the server to apply the settings."));
 	msgBox.onNegative.pExtra = &hudscale;
 	SET_EVENT_MULTI( msgBox.onNegative,
@@ -239,6 +243,7 @@ void CMenuVidOptions::_Init( void )
 	AddItem( indirect2Bounces );
 	AddItem( waterWarp );
 	AddItem( hudscale );
+	AddItem( hdModels );
 
 #if LEGACY_VIEWSIZE
 	screenSize.LinkCvar( "viewsize" );
@@ -247,6 +252,8 @@ void CMenuVidOptions::_Init( void )
 	detailtex.LinkCvar( "r_detailtextures" );
 	hudscale.LinkCvar( "hud_scale" );
 
+	hdModels.LinkCvar( "fs_mount_hd" );
+	hdModels.bUpdateImmediately = true;
 	vsync.LinkCvar( "rt_vsync" );
 	vsync.bUpdateImmediately = true;
 	muzzleFlash.LinkCvar( "rt_mzlflash" );
