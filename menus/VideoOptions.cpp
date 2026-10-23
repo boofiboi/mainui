@@ -91,7 +91,7 @@ public:
 	CMenuCheckBox indirect2Bounces;
 	CMenuCheckBox waterWarp;
 	CMenuCheckBox hdModels;
-	CMenuCheckBox fsr3FrameGen;
+	CMenuCheckBox frameGen;
 	CMenuSpinControl fsr3;
 	CMenuSpinControl dlss;
 	CMenuSpinControl vintage;
@@ -127,13 +127,38 @@ void CMenuVidOptions::_Init( void )
 	fsr3.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_upscale_fsr3", float( val ) );
-		if( val != 0 && pSelf->Parent() )
+		if( pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->dlss.SetCurrentValue( 0.0f );
-			parent->vintage.SetCurrentValue( 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
-			EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+			if( val != 0 )
+			{
+				parent->dlss.SetCurrentValue( 0.0f );
+				parent->vintage.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
+				EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+			}
+			bool fg_ok = (int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ) != 0;
+			parent->frameGen.SetGrayed( !fg_ok );
+			parent->frameGen.SetInactive( !fg_ok );
+			if( parent->frameGen.bChecked )
+			{
+				if( fg_ok )
+				{
+					EngFuncs::CvarSetValue( "rt_framegen_tech", 1.0f );
+					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 1.0f );
+				}
+				else
+				{
+					parent->frameGen.bChecked = false;
+					parent->frameGen.SetCvarValue( 0.0f );
+					EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
+					EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
+					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+				}
+			}
 		}
 	};
 
@@ -147,18 +172,52 @@ void CMenuVidOptions::_Init( void )
 	dlss.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_upscale_dlss", float( val ) );
-		if( val != 0 && pSelf->Parent() )
+		if( pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->fsr3.SetCurrentValue( 0.0f );
-			parent->vintage.SetCurrentValue( 0.0f );
-			parent->fsr3FrameGen.bChecked = false;
-			parent->fsr3FrameGen.SetCvarValue( 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0.0f );
-			EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
-			EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
-			EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
+			if( val != 0 )
+			{
+				parent->fsr3.SetCurrentValue( 0.0f );
+				parent->vintage.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0.0f );
+				EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+
+				bool fg_ok = (int)EngFuncs::GetCvarFloat( "_rt_dlss_fg_available" ) != 0;
+				parent->frameGen.SetGrayed( !fg_ok );
+				parent->frameGen.SetInactive( !fg_ok );
+				if( parent->frameGen.bChecked )
+				{
+					if( fg_ok )
+					{
+						EngFuncs::CvarSetValue( "rt_framegen_tech", 2.0f );
+						EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
+						EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+						EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+					}
+					else
+					{
+						parent->frameGen.bChecked = false;
+						parent->frameGen.SetCvarValue( 0.0f );
+						EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
+						EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
+						EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+						EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+					}
+				}
+			}
+			else
+			{
+				bool fg_ok = (int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ) != 0;
+				parent->frameGen.SetGrayed( !fg_ok );
+				parent->frameGen.SetInactive( !fg_ok );
+				if( parent->frameGen.bChecked && fg_ok )
+				{
+					EngFuncs::CvarSetValue( "rt_framegen_tech", 1.0f );
+					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 1.0f );
+				}
+			}
 		}
 	};
 
@@ -172,36 +231,69 @@ void CMenuVidOptions::_Init( void )
 	vintage.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_ef_vintage", float( val ) );
-		if( val != 0 && pSelf->Parent() )
+		if( pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->fsr3.SetCurrentValue( 0.0f );
-			parent->dlss.SetCurrentValue( 0.0f );
-			parent->fsr3FrameGen.bChecked = false;
-			parent->fsr3FrameGen.SetCvarValue( 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
-			EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
-			EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
+			if( val != 0 )
+			{
+				parent->fsr3.SetCurrentValue( 0.0f );
+				parent->dlss.SetCurrentValue( 0.0f );
+				parent->frameGen.bChecked = false;
+				parent->frameGen.SetCvarValue( 0.0f );
+				parent->frameGen.SetGrayed( true );
+				parent->frameGen.SetInactive( true );
+				EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
+				EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
+				EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
+				EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+			}
+			else
+			{
+				bool is_dlss = parent->dlss.GetCurrentValue() > 0.0f || EngFuncs::GetCvarFloat( "rt_upscale_dlss" ) > 0.0f;
+				bool fg_ok = is_dlss ? ( (int)EngFuncs::GetCvarFloat( "_rt_dlss_fg_available" ) != 0 ) : ( (int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ) != 0 );
+				parent->frameGen.SetGrayed( !fg_ok );
+				parent->frameGen.SetInactive( !fg_ok );
+			}
 		}
 	};
 
-	fsr3FrameGen.SetNameAndStatus( L( "FSR3 Frame Gen" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
-	fsr3FrameGen.SetCoord( 600, 315 );
-	fsr3FrameGen.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+	frameGen.SetNameAndStatus( L( "Frame Generation" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
+	frameGen.SetCoord( 600, 315 );
+	frameGen.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		CMenuCheckBox* cb = static_cast< CMenuCheckBox* >( pSelf );
-		float val = cb->bChecked ? 1.0f : 0.0f;
-		EngFuncs::CvarSetValue( "rt_fsr3_framegen", val );
-		EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", val );
-		EngFuncs::CvarSetValue( "rt_framegen_tech", val );
-		if( cb->bChecked && pSelf->Parent() )
+		if( pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->dlss.SetCurrentValue( 0.0f );
-			parent->vintage.SetCurrentValue( 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
-			EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+			if( cb->bChecked )
+			{
+				parent->vintage.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+
+				bool is_dlss = parent->dlss.GetCurrentValue() > 0.0f || EngFuncs::GetCvarFloat( "rt_upscale_dlss" ) > 0.0f;
+				if( is_dlss )
+				{
+					EngFuncs::CvarSetValue( "rt_framegen_tech", 2.0f );
+					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+				}
+				else
+				{
+					EngFuncs::CvarSetValue( "rt_framegen_tech", 1.0f );
+					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 1.0f );
+					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 1.0f );
+				}
+			}
+			else
+			{
+				EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
+				EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
+				EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+			}
 		}
 	};
 
@@ -292,7 +384,7 @@ void CMenuVidOptions::_Init( void )
 #endif
 	AddItem( fsr3 );
 	AddItem( dlss );
-	AddItem( fsr3FrameGen );
+	AddItem( frameGen );
 	AddItem( vintage );
 	AddItem( vsync );
 	AddItem( muzzleFlash );
@@ -337,8 +429,8 @@ void CMenuVidOptions::_Init( void )
 	indirect2Bounces.bUpdateImmediately = true;
 	waterWarp.LinkCvar( "rt_ef_water" );
 	waterWarp.bUpdateImmediately = true;
-	fsr3FrameGen.LinkCvar( "rt_fsr3_framegen" );
-	fsr3FrameGen.bUpdateImmediately = true;
+	frameGen.LinkCvar( "rt_framegen" );
+	frameGen.bUpdateImmediately = true;
 }
 
 void CMenuVidOptions::Draw( void )
@@ -360,8 +452,14 @@ void CMenuVidOptions::Reload()
 	fsr3.SetInactive( !rt_active );
 	dlss.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ));
 	dlss.SetInactive( !rt_active );
-	fsr3FrameGen.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ));
-	fsr3FrameGen.SetInactive( !rt_active );
+
+	bool is_dlss = (int)EngFuncs::GetCvarFloat( "rt_upscale_dlss" ) > 0 || (int)EngFuncs::GetCvarFloat( "rt_upscale_tech" ) == 2;
+	bool is_vintage = (int)EngFuncs::GetCvarFloat( "rt_ef_vintage" ) > 0;
+	bool fg_ok = !is_vintage && ( is_dlss ? (int)EngFuncs::GetCvarFloat( "_rt_dlss_fg_available" ) : (int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ) );
+
+	frameGen.SetGrayed( !rt_active || !fg_ok );
+	frameGen.SetInactive( !rt_active || !fg_ok );
+	frameGen.bChecked = rt_active && fg_ok && ( (int)EngFuncs::GetCvarFloat( "rt_framegen" ) > 0 || (int)EngFuncs::GetCvarFloat( "rt_framegen_tech" ) > 0 );
 	vintage.SetGrayed( !rt_active );
 	vintage.SetInactive( !rt_active );
 	vsync.SetGrayed( !rt_active );
