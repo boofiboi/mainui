@@ -147,7 +147,6 @@ void CMenuVidOptions::_Init( void )
 					EngFuncs::CvarSetValue( "rt_framegen_tech", 1.0f );
 					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
 					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 1.0f );
-					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 1.0f );
 				}
 				else
 				{
@@ -156,7 +155,6 @@ void CMenuVidOptions::_Init( void )
 					EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
 					EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
 					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
 				}
 			}
 		}
@@ -192,7 +190,6 @@ void CMenuVidOptions::_Init( void )
 						EngFuncs::CvarSetValue( "rt_framegen_tech", 2.0f );
 						EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
 						EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-						EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
 					}
 					else
 					{
@@ -201,7 +198,6 @@ void CMenuVidOptions::_Init( void )
 						EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
 						EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
 						EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-						EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
 					}
 				}
 			}
@@ -215,7 +211,6 @@ void CMenuVidOptions::_Init( void )
 					EngFuncs::CvarSetValue( "rt_framegen_tech", 1.0f );
 					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
 					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 1.0f );
-					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 1.0f );
 				}
 			}
 		}
@@ -247,7 +242,6 @@ void CMenuVidOptions::_Init( void )
 				EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
 				EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
 				EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-				EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
 			}
 			else
 			{
@@ -277,14 +271,12 @@ void CMenuVidOptions::_Init( void )
 					EngFuncs::CvarSetValue( "rt_framegen_tech", 2.0f );
 					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
 					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
 				}
 				else
 				{
 					EngFuncs::CvarSetValue( "rt_framegen_tech", 1.0f );
 					EngFuncs::CvarSetValue( "rt_framegen", 1.0f );
 					EngFuncs::CvarSetValue( "rt_fsr3_framegen", 1.0f );
-					EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 1.0f );
 				}
 			}
 			else
@@ -292,7 +284,6 @@ void CMenuVidOptions::_Init( void )
 				EngFuncs::CvarSetValue( "rt_framegen", 0.0f );
 				EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
 				EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
-				EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
 			}
 		}
 	};
