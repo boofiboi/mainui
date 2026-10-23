@@ -132,6 +132,8 @@ void CMenuVidOptions::_Init( void )
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			parent->dlss.SetCurrentValue( 0.0f );
 			parent->vintage.SetCurrentValue( 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
+			EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
 		}
 	};
 
@@ -150,6 +152,13 @@ void CMenuVidOptions::_Init( void )
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			parent->fsr3.SetCurrentValue( 0.0f );
 			parent->vintage.SetCurrentValue( 0.0f );
+			parent->fsr3FrameGen.bChecked = false;
+			parent->fsr3FrameGen.SetCvarValue( 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0.0f );
+			EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+			EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+			EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
 		}
 	};
 
@@ -168,11 +177,33 @@ void CMenuVidOptions::_Init( void )
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			parent->fsr3.SetCurrentValue( 0.0f );
 			parent->dlss.SetCurrentValue( 0.0f );
+			parent->fsr3FrameGen.bChecked = false;
+			parent->fsr3FrameGen.SetCvarValue( 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr3", 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
+			EngFuncs::CvarSetValue( "rt_fsr3_framegen", 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", 0.0f );
+			EngFuncs::CvarSetValue( "rt_framegen_tech", 0.0f );
 		}
 	};
 
 	fsr3FrameGen.SetNameAndStatus( L( "FSR3 Frame Gen" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
 	fsr3FrameGen.SetCoord( 600, 315 );
+	fsr3FrameGen.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		CMenuCheckBox* cb = static_cast< CMenuCheckBox* >( pSelf );
+		float val = cb->bChecked ? 1.0f : 0.0f;
+		EngFuncs::CvarSetValue( "rt_fsr3_framegen", val );
+		EngFuncs::CvarSetValue( "rt_upscale_fsr3_fg", val );
+		EngFuncs::CvarSetValue( "rt_framegen_tech", val );
+		if( cb->bChecked && pSelf->Parent() )
+		{
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->dlss.SetCurrentValue( 0.0f );
+			parent->vintage.SetCurrentValue( 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_dlss", 0.0f );
+			EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+		}
+	};
 
 	vsync.SetNameAndStatus( L( "VSync" ), L( "Enable vertical synchronization" ) );
 	vsync.SetCoord( 260, 375 );
