@@ -119,7 +119,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
 	fsr3.SetNameAndStatus( "AMD FSR3", L( "AMD FidelityFX Super Resolution 3 upscaling" ) );
-	fsr3.SetRect( 260, 265, 230, 32 );
+	fsr3.SetRect( 260, 220, 230, 32 );
 	fsr3.SetCharSize( QM_SMALLFONT );
 	fsr3.Setup( &fsr3Model );
 	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
@@ -164,7 +164,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel dlssModel( pDlssNames, V_ARRAYSIZE( pDlssNames ) );
 	dlss.SetNameAndStatus( "NVIDIA DLSS", L( "NVIDIA Deep Learning Super Sampling upscaling" ) );
-	dlss.SetRect( 600, 265, 230, 32 );
+	dlss.SetRect( 600, 220, 230, 32 );
 	dlss.SetCharSize( QM_SMALLFONT );
 	dlss.Setup( &dlssModel );
 	dlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
@@ -223,7 +223,7 @@ void CMenuVidOptions::_Init( void )
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
 	vintage.SetNameAndStatus( "Vintage", L( "Pixelated vintage rendering filter" ) );
-	vintage.SetRect( 260, 315, 230, 32 );
+	vintage.SetRect( 260, 295, 230, 32 );
 	vintage.SetCharSize( QM_SMALLFONT );
 	vintage.Setup( &vintageModel );
 	vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
@@ -260,7 +260,7 @@ void CMenuVidOptions::_Init( void )
 	};
 
 	frameGen.SetNameAndStatus( L( "Frame Generation" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
-	frameGen.SetCoord( 600, 315 );
+	frameGen.SetCoord( 600, 295 );
 	frameGen.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		CMenuCheckBox* cb = static_cast< CMenuCheckBox* >( pSelf );
 		if( pSelf->Parent() )

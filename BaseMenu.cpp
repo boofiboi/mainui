@@ -289,8 +289,8 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 
 	if( flags & ETF_SHADOW )
 	{
-		shadowModulate = PackAlpha( uiColorBlack, UnpackAlpha( color ));
-		shadowOffset = Q_max( 1, uiStatic.scaleX * 3 );
+		shadowModulate = PackAlpha( uiColorBlack, ( UnpackAlpha( color ) * 180 ) / 255 );
+		shadowOffset = Q_max( 1, (int)( uiStatic.scaleX + 0.25f ) );
 	}
 
 	modulate = color;
