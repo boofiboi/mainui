@@ -83,7 +83,9 @@ public:
 	CMenuCheckBox hdModels;
 	CMenuCheckBox fsr3FrameGen;
 	CMenuSpinControl fsr3;
+	CMenuSpinControl dlss;
 	CMenuSpinControl vintage;
+	void UpdateFrameGenStatus();
 };
 
 void CMenuVidOptions::SaveAndPopMenu( void )
@@ -119,7 +121,36 @@ void CMenuVidOptions::_Init( void )
 		if( val != 0 && pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->dlss.SetCurrentValue( 0.0f );
 			parent->vintage.SetCurrentValue( 0.0f );
+		}
+		if( pSelf->Parent() )
+		{
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->UpdateFrameGenStatus();
+		}
+	};
+
+	static CStringArrayModel dlssModel( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
+	dlss.SetNameAndStatus( "NVIDIA DLSS", L( "NVIDIA Deep Learning Super Sampling upscaling" ) );
+	dlss.SetRect( 600, 265, 230, 32 );
+	dlss.SetCharSize( QM_SMALLFONT );
+	dlss.Setup( &dlssModel );
+	dlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
+	dlss.bUpdateImmediately = true;
+	dlss.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
+		EngFuncs::CvarSetValue( "rt_upscale_dlss", float( val ) );
+		if( val != 0 && pSelf->Parent() )
+		{
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->fsr3.SetCurrentValue( 0.0f );
+			parent->vintage.SetCurrentValue( 0.0f );
+		}
+		if( pSelf->Parent() )
+		{
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->UpdateFrameGenStatus();
 		}
 	};
 
@@ -137,10 +168,16 @@ void CMenuVidOptions::_Init( void )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			parent->fsr3.SetCurrentValue( 0.0f );
+			parent->dlss.SetCurrentValue( 0.0f );
+		}
+		if( pSelf->Parent() )
+		{
+			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			parent->UpdateFrameGenStatus();
 		}
 	};
 
-	fsr3FrameGen.SetNameAndStatus( L( "FSR3 Frame Gen" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
+	fsr3FrameGen.SetNameAndStatus( L( "Frame Gen" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
 	fsr3FrameGen.SetCoord( 600, 315 );
 
 	vsync.SetNameAndStatus( L( "VSync" ), L( "Enable vertical synchronization" ) );
@@ -229,6 +266,7 @@ void CMenuVidOptions::_Init( void )
 	AddItem( screenSize );
 #endif
 	AddItem( fsr3 );
+	AddItem( dlss );
 	AddItem( fsr3FrameGen );
 	AddItem( vintage );
 	AddItem( vsync );
@@ -274,7 +312,7 @@ void CMenuVidOptions::_Init( void )
 	indirect2Bounces.bUpdateImmediately = true;
 	waterWarp.LinkCvar( "rt_ef_water" );
 	waterWarp.bUpdateImmediately = true;
-	fsr3FrameGen.LinkCvar( "rt_fsr3_framegen" );
+	fsr3FrameGen.LinkCvar( "rt_framegen" );
 	fsr3FrameGen.bUpdateImmediately = true;
 }
 
@@ -283,6 +321,23 @@ void CMenuVidOptions::Draw( void )
 	CMenuFramework::Draw();
 
 	UI_DrawRectangleExt( 260 * uiStatic.scaleX, 358 * uiStatic.scaleY, 630 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
+}
+
+void CMenuVidOptions::UpdateFrameGenStatus( void )
+{
+	bool gl_active = !strnicmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "gl", 2 );
+	int dlss_val = (int)dlss.CvarValue();
+	bool fg_available = false;
+	if( dlss_val > 0 )
+	{
+		fg_available = (int)EngFuncs::GetCvarFloat( "_rt_dlss_framegen_available" ) != 0;
+	}
+	else
+	{
+		fg_available = (int)EngFuncs::GetCvarFloat( "_rt_framegen_available" ) != 0;
+	}
+	fsr3FrameGen.SetGrayed( !gl_active || !fg_available );
+	fsr3FrameGen.SetInactive( !gl_active || !fg_available );
 }
 
 void CMenuVidOptions::Reload()
@@ -295,8 +350,9 @@ void CMenuVidOptions::Reload()
 	bool rt_active = gl_active;
 	fsr3.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ));
 	fsr3.SetInactive( !rt_active );
-	fsr3FrameGen.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_framegen_available" ));
-	fsr3FrameGen.SetInactive( !rt_active );
+	dlss.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ));
+	dlss.SetInactive( !rt_active );
+	UpdateFrameGenStatus();
 	vintage.SetGrayed( !rt_active );
 	vintage.SetInactive( !rt_active );
 	vsync.SetGrayed( !rt_active );
