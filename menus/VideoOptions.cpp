@@ -31,7 +31,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define LEGACY_VIEWSIZE 0
 
-static const char *pFsr3Names[] =
+static const char *pUpscaleMethodNames[] =
+{
+	L( "Off" ),
+	"AMD FSR3",
+	"NVIDIA DLSS",
+};
+
+static const char *pUpscaleQualityNames[] =
 {
 	L( "Off" ),
 	L( "Native AA" ),
@@ -82,8 +89,8 @@ public:
 	CMenuCheckBox waterWarp;
 	CMenuCheckBox hdModels;
 	CMenuCheckBox fsr3FrameGen;
-	CMenuSpinControl fsr3;
-	CMenuSpinControl dlss;
+	CMenuSpinControl upscaleMethod;
+	CMenuSpinControl upscaleQuality;
 	CMenuSpinControl vintage;
 	void UpdateFrameGenStatus();
 };
@@ -108,48 +115,65 @@ void CMenuVidOptions::_Init( void )
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 
-	static CStringArrayModel fsr3Model( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
-	fsr3.SetNameAndStatus( "AMD FSR3", L( "AMD FidelityFX Super Resolution 3 upscaling" ) );
-	fsr3.SetRect( 260, 265, 230, 32 );
-	fsr3.SetCharSize( QM_SMALLFONT );
-	fsr3.Setup( &fsr3Model );
-	fsr3.LinkCvar( "rt_upscale_fsr3", CMenuEditable::CVAR_VALUE );
-	fsr3.bUpdateImmediately = true;
-	fsr3.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+	static CStringArrayModel upscaleMethodModel( pUpscaleMethodNames, V_ARRAYSIZE( pUpscaleMethodNames ) );
+	upscaleMethod.SetNameAndStatus( "Upscaler", L( "Upscaling technique (AMD FSR3 or NVIDIA DLSS)" ) );
+	upscaleMethod.SetRect( 260, 265, 230, 32 );
+	upscaleMethod.SetCharSize( QM_SMALLFONT );
+	upscaleMethod.Setup( &upscaleMethodModel );
+	upscaleMethod.LinkCvar( "rt_upscale_method", CMenuEditable::CVAR_VALUE );
+	upscaleMethod.bUpdateImmediately = true;
+	upscaleMethod.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
-		EngFuncs::CvarSetValue( "rt_upscale_fsr3", float( val ) );
-		if( val != 0 && pSelf->Parent() )
-		{
-			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->dlss.SetCurrentValue( 0.0f );
-			parent->vintage.SetCurrentValue( 0.0f );
-		}
+		EngFuncs::CvarSetValue( "rt_upscale_method", float( val ) );
 		if( pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			if( val != 0 )
+			{
+				parent->vintage.SetCurrentValue( 0.0f );
+				if( (int)parent->upscaleQuality.CvarValue() == 0 )
+				{
+					parent->upscaleQuality.SetCurrentValue( 2.0f );
+					EngFuncs::CvarSetValue( "rt_upscale_quality", 2.0f );
+				}
+			}
+			else
+			{
+				parent->upscaleQuality.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_quality", 0.0f );
+			}
 			parent->UpdateFrameGenStatus();
 		}
 	};
 
-	static CStringArrayModel dlssModel( pFsr3Names, V_ARRAYSIZE( pFsr3Names ) );
-	dlss.SetNameAndStatus( "NVIDIA DLSS", L( "NVIDIA Deep Learning Super Sampling upscaling" ) );
-	dlss.SetRect( 600, 265, 230, 32 );
-	dlss.SetCharSize( QM_SMALLFONT );
-	dlss.Setup( &dlssModel );
-	dlss.LinkCvar( "rt_upscale_dlss", CMenuEditable::CVAR_VALUE );
-	dlss.bUpdateImmediately = true;
-	dlss.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+	static CStringArrayModel upscaleQualityModel( pUpscaleQualityNames, V_ARRAYSIZE( pUpscaleQualityNames ) );
+	upscaleQuality.SetNameAndStatus( "Upscale Quality", L( "Upscaling quality preset" ) );
+	upscaleQuality.SetRect( 600, 265, 230, 32 );
+	upscaleQuality.SetCharSize( QM_SMALLFONT );
+	upscaleQuality.Setup( &upscaleQualityModel );
+	upscaleQuality.LinkCvar( "rt_upscale_quality", CMenuEditable::CVAR_VALUE );
+	upscaleQuality.bUpdateImmediately = true;
+	upscaleQuality.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
-		EngFuncs::CvarSetValue( "rt_upscale_dlss", float( val ) );
-		if( val != 0 && pSelf->Parent() )
-		{
-			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->fsr3.SetCurrentValue( 0.0f );
-			parent->vintage.SetCurrentValue( 0.0f );
-		}
+		EngFuncs::CvarSetValue( "rt_upscale_quality", float( val ) );
 		if( pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			if( val != 0 )
+			{
+				parent->vintage.SetCurrentValue( 0.0f );
+				if( (int)parent->upscaleMethod.CvarValue() == 0 )
+				{
+					float defaultMethod = ( (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0 ) ? 2.0f : 1.0f;
+					parent->upscaleMethod.SetCurrentValue( defaultMethod );
+					EngFuncs::CvarSetValue( "rt_upscale_method", defaultMethod );
+				}
+			}
+			else
+			{
+				parent->upscaleMethod.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_method", 0.0f );
+			}
 			parent->UpdateFrameGenStatus();
 		}
 	};
@@ -167,8 +191,10 @@ void CMenuVidOptions::_Init( void )
 		if( val != 0 && pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->fsr3.SetCurrentValue( 0.0f );
-			parent->dlss.SetCurrentValue( 0.0f );
+			parent->upscaleMethod.SetCurrentValue( 0.0f );
+			parent->upscaleQuality.SetCurrentValue( 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_method", 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_quality", 0.0f );
 		}
 		if( pSelf->Parent() )
 		{
@@ -265,8 +291,8 @@ void CMenuVidOptions::_Init( void )
 #if LEGACY_VIEWSIZE
 	AddItem( screenSize );
 #endif
-	AddItem( fsr3 );
-	AddItem( dlss );
+	AddItem( upscaleMethod );
+	AddItem( upscaleQuality );
 	AddItem( fsr3FrameGen );
 	AddItem( vintage );
 	AddItem( vsync );
@@ -326,9 +352,9 @@ void CMenuVidOptions::Draw( void )
 void CMenuVidOptions::UpdateFrameGenStatus( void )
 {
 	bool gl_active = !strnicmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "gl", 2 );
-	int dlss_val = (int)dlss.CvarValue();
+	int method = (int)upscaleMethod.CvarValue();
 	bool fg_available = false;
-	if( dlss_val > 0 )
+	if( method == 2 )
 	{
 		fg_available = (int)EngFuncs::GetCvarFloat( "_rt_dlss_framegen_available" ) != 0;
 	}
@@ -348,10 +374,12 @@ void CMenuVidOptions::Reload()
 	detailtex.SetInactive( !gl_active );
 
 	bool rt_active = gl_active;
-	fsr3.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ));
-	fsr3.SetInactive( !rt_active );
-	dlss.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ));
-	dlss.SetInactive( !rt_active );
+	bool fsr3_ok = (int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ) != 0;
+	bool dlss_ok = (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0;
+	upscaleMethod.SetGrayed( !rt_active || (!fsr3_ok && !dlss_ok) );
+	upscaleMethod.SetInactive( !rt_active );
+	upscaleQuality.SetGrayed( !rt_active || (!fsr3_ok && !dlss_ok) );
+	upscaleQuality.SetInactive( !rt_active );
 	UpdateFrameGenStatus();
 	vintage.SetGrayed( !rt_active );
 	vintage.SetInactive( !rt_active );
