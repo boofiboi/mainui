@@ -31,12 +31,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define LEGACY_VIEWSIZE 0
 
-static const char *pUpscaleMethodNames[] =
+static const char *pUpscaleMethodNamesAll[] =
 {
 	L( "Off" ),
 	"AMD FSR3",
 	"NVIDIA DLSS",
 };
+
+static const char *pUpscaleMethodNamesNoDlss[] =
+{
+	L( "Off" ),
+	"AMD FSR3",
+};
+
+static CStringArrayModel upscaleMethodModelAll( pUpscaleMethodNamesAll, V_ARRAYSIZE( pUpscaleMethodNamesAll ) );
+static CStringArrayModel upscaleMethodModelNoDlss( pUpscaleMethodNamesNoDlss, V_ARRAYSIZE( pUpscaleMethodNamesNoDlss ) );
 
 static const char *pUpscaleQualityNames[] =
 {
@@ -117,17 +126,22 @@ void CMenuVidOptions::_Init( void )
 
 	static bool s_inCvarWrite = false;
 
-	static CStringArrayModel upscaleMethodModel( pUpscaleMethodNames, V_ARRAYSIZE( pUpscaleMethodNames ) );
+	bool dlss_init_ok = (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0;
 	upscaleMethod.SetNameAndStatus( "Upscaler", L( "Upscaling technique (AMD FSR3 or NVIDIA DLSS)" ) );
 	upscaleMethod.SetRect( 260, 265, 230, 32 );
 	upscaleMethod.SetCharSize( QM_SMALLFONT );
-	upscaleMethod.Setup( &upscaleMethodModel );
+	upscaleMethod.Setup( dlss_init_ok ? &upscaleMethodModelAll : &upscaleMethodModelNoDlss );
 	upscaleMethod.LinkCvar( "rt_upscale_method", CMenuEditable::CVAR_VALUE );
 	upscaleMethod.bUpdateImmediately = true;
 	upscaleMethod.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
 		if( s_inCvarWrite ) return;
 		s_inCvarWrite = true;
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
+		bool dlss_ok = (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0;
+		if( val == 2 && !dlss_ok )
+		{
+			val = 1;
+		}
 		EngFuncs::CvarSetValue( "rt_upscale_method", float( val ) );
 		if( pSelf->Parent() )
 		{
@@ -387,10 +401,25 @@ void CMenuVidOptions::Reload()
 	bool rt_active = gl_active;
 	bool fsr3_ok = (int)EngFuncs::GetCvarFloat( "_rt_fsr3_available" ) != 0;
 	bool dlss_ok = (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0;
+
+	if( dlss_ok )
+	{
+		upscaleMethod.Setup( &upscaleMethodModelAll );
+	}
+	else
+	{
+		upscaleMethod.Setup( &upscaleMethodModelNoDlss );
+		if( (int)upscaleMethod.CvarValue() > 1 )
+		{
+			upscaleMethod.SetCurrentValue( fsr3_ok ? 1.0f : 0.0f );
+			EngFuncs::CvarSetValue( "rt_upscale_method", fsr3_ok ? 1.0f : 0.0f );
+		}
+	}
+
 	upscaleMethod.SetGrayed( !rt_active || (!fsr3_ok && !dlss_ok) );
-	upscaleMethod.SetInactive( !rt_active );
+	upscaleMethod.SetInactive( !rt_active || (!fsr3_ok && !dlss_ok) );
 	upscaleQuality.SetGrayed( !rt_active || (!fsr3_ok && !dlss_ok) );
-	upscaleQuality.SetInactive( !rt_active );
+	upscaleQuality.SetInactive( !rt_active || (!fsr3_ok && !dlss_ok) );
 	UpdateFrameGenStatus();
 	vintage.SetGrayed( !rt_active );
 	vintage.SetInactive( !rt_active );
