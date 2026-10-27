@@ -115,6 +115,8 @@ void CMenuVidOptions::_Init( void )
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 
+	static bool s_inCvarWrite = false;
+
 	static CStringArrayModel upscaleMethodModel( pUpscaleMethodNames, V_ARRAYSIZE( pUpscaleMethodNames ) );
 	upscaleMethod.SetNameAndStatus( "Upscaler", L( "Upscaling technique (AMD FSR3 or NVIDIA DLSS)" ) );
 	upscaleMethod.SetRect( 260, 265, 230, 32 );
@@ -123,6 +125,8 @@ void CMenuVidOptions::_Init( void )
 	upscaleMethod.LinkCvar( "rt_upscale_method", CMenuEditable::CVAR_VALUE );
 	upscaleMethod.bUpdateImmediately = true;
 	upscaleMethod.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		if( s_inCvarWrite ) return;
+		s_inCvarWrite = true;
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_upscale_method", float( val ) );
 		if( pSelf->Parent() )
@@ -130,20 +134,20 @@ void CMenuVidOptions::_Init( void )
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			if( val != 0 )
 			{
-				parent->vintage.SetCurrentValue( 0.0f );
+				if( parent->vintage.CvarValue() != 0.0f )
+				{
+					parent->vintage.SetCurrentValue( 0.0f );
+					EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+				}
 				if( (int)parent->upscaleQuality.CvarValue() == 0 )
 				{
 					parent->upscaleQuality.SetCurrentValue( 2.0f );
 					EngFuncs::CvarSetValue( "rt_upscale_quality", 2.0f );
 				}
 			}
-			else
-			{
-				parent->upscaleQuality.SetCurrentValue( 0.0f );
-				EngFuncs::CvarSetValue( "rt_upscale_quality", 0.0f );
-			}
 			parent->UpdateFrameGenStatus();
 		}
+		s_inCvarWrite = false;
 	};
 
 	static CStringArrayModel upscaleQualityModel( pUpscaleQualityNames, V_ARRAYSIZE( pUpscaleQualityNames ) );
@@ -154,6 +158,8 @@ void CMenuVidOptions::_Init( void )
 	upscaleQuality.LinkCvar( "rt_upscale_quality", CMenuEditable::CVAR_VALUE );
 	upscaleQuality.bUpdateImmediately = true;
 	upscaleQuality.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		if( s_inCvarWrite ) return;
+		s_inCvarWrite = true;
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_upscale_quality", float( val ) );
 		if( pSelf->Parent() )
@@ -161,7 +167,11 @@ void CMenuVidOptions::_Init( void )
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
 			if( val != 0 )
 			{
-				parent->vintage.SetCurrentValue( 0.0f );
+				if( parent->vintage.CvarValue() != 0.0f )
+				{
+					parent->vintage.SetCurrentValue( 0.0f );
+					EngFuncs::CvarSetValue( "rt_ef_vintage", 0.0f );
+				}
 				if( (int)parent->upscaleMethod.CvarValue() == 0 )
 				{
 					float defaultMethod = ( (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0 ) ? 2.0f : 1.0f;
@@ -169,13 +179,9 @@ void CMenuVidOptions::_Init( void )
 					EngFuncs::CvarSetValue( "rt_upscale_method", defaultMethod );
 				}
 			}
-			else
-			{
-				parent->upscaleMethod.SetCurrentValue( 0.0f );
-				EngFuncs::CvarSetValue( "rt_upscale_method", 0.0f );
-			}
 			parent->UpdateFrameGenStatus();
 		}
+		s_inCvarWrite = false;
 	};
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
@@ -186,21 +192,26 @@ void CMenuVidOptions::_Init( void )
 	vintage.LinkCvar( "rt_ef_vintage", CMenuEditable::CVAR_VALUE );
 	vintage.bUpdateImmediately = true;
 	vintage.onCvarWrite = []( CMenuBaseItem* pSelf, void* pExtra ) {
+		if( s_inCvarWrite ) return;
+		s_inCvarWrite = true;
 		int val = int( static_cast< CMenuEditable* >( pSelf )->CvarValue() );
 		EngFuncs::CvarSetValue( "rt_ef_vintage", float( val ) );
 		if( val != 0 && pSelf->Parent() )
 		{
 			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
-			parent->upscaleMethod.SetCurrentValue( 0.0f );
-			parent->upscaleQuality.SetCurrentValue( 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_method", 0.0f );
-			EngFuncs::CvarSetValue( "rt_upscale_quality", 0.0f );
-		}
-		if( pSelf->Parent() )
-		{
-			CMenuVidOptions* parent = static_cast< CMenuVidOptions* >( pSelf->Parent() );
+			if( parent->upscaleMethod.CvarValue() != 0.0f )
+			{
+				parent->upscaleMethod.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_method", 0.0f );
+			}
+			if( parent->upscaleQuality.CvarValue() != 0.0f )
+			{
+				parent->upscaleQuality.SetCurrentValue( 0.0f );
+				EngFuncs::CvarSetValue( "rt_upscale_quality", 0.0f );
+			}
 			parent->UpdateFrameGenStatus();
 		}
+		s_inCvarWrite = false;
 	};
 
 	fsr3FrameGen.SetNameAndStatus( L( "Frame Gen" ), L( "Frame generation is best used when FPS>60, utilizing it with any less FPS will result in massive amounts of frame delay" ) );
