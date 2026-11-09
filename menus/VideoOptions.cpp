@@ -66,6 +66,14 @@ static const char *pVintageNames[] =
 	L( "720p" ),
 };
 
+static const char *pDenoiserNames[] =
+{
+	"ReBLUR",
+	"RELAX",
+};
+
+static CStringArrayModel denoiserModel( pDenoiserNames, V_ARRAYSIZE( pDenoiserNames ) );
+
 class CMenuVidOptions : public CMenuFramework
 {
 private:
@@ -101,6 +109,7 @@ public:
 	CMenuSpinControl upscaleMethod;
 	CMenuSpinControl upscaleQuality;
 	CMenuSpinControl vintage;
+	CMenuSpinControl denoiser;
 	void UpdateFrameGenStatus();
 };
 
@@ -197,6 +206,13 @@ void CMenuVidOptions::_Init( void )
 		}
 		s_inCvarWrite = false;
 	};
+
+	denoiser.SetNameAndStatus( "Denoiser", L( "NRD denoiser algorithm (ReBLUR or RELAX)" ) );
+	denoiser.SetRect( 940, 265, 230, 32 );
+	denoiser.SetCharSize( QM_SMALLFONT );
+	denoiser.Setup( &denoiserModel );
+	denoiser.LinkCvar( "rt_denoiser", CMenuEditable::CVAR_VALUE );
+	denoiser.bUpdateImmediately = true;
 
 	static CStringArrayModel vintageModel( pVintageNames, V_ARRAYSIZE( pVintageNames ) );
 	vintage.SetNameAndStatus( "Vintage", L( "Pixelated vintage rendering filter" ) );
@@ -333,6 +349,7 @@ void CMenuVidOptions::_Init( void )
 	AddItem( waterWarp );
 	AddItem( hudscale );
 	AddItem( hdModels );
+	AddItem( denoiser );
 
 #if LEGACY_VIEWSIZE
 	screenSize.LinkCvar( "viewsize" );
@@ -371,7 +388,7 @@ void CMenuVidOptions::Draw( void )
 {
 	CMenuFramework::Draw();
 
-	UI_DrawRectangleExt( 260 * uiStatic.scaleX, 358 * uiStatic.scaleY, 630 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
+	UI_DrawRectangleExt( 260 * uiStatic.scaleX, 358 * uiStatic.scaleY, 950 * uiStatic.scaleX, 2 * uiStatic.scaleY, uiColorHelp, 1, QM_TOP | QM_BOTTOM );
 }
 
 void CMenuVidOptions::UpdateFrameGenStatus( void )
@@ -443,6 +460,8 @@ void CMenuVidOptions::Reload()
 	indirect2Bounces.SetInactive( !rt_active );
 	waterWarp.SetGrayed( !rt_active );
 	waterWarp.SetInactive( !rt_active );
+	denoiser.SetGrayed( !rt_active );
+	denoiser.SetInactive( !rt_active );
 
 	CMenuFramework::Reload();
 }
