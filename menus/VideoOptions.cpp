@@ -109,7 +109,6 @@ public:
 	CMenuCheckBox volumetric;
 	CMenuCheckBox bloom;
 	CMenuCheckBox dirt;
-	CMenuCheckBox antiFirefly;
 	CMenuCheckBox indirect2Bounces;
 	CMenuCheckBox waterWarp;
 	CMenuCheckBox hdModels;
@@ -267,11 +266,8 @@ void CMenuVidOptions::_Init( void )
 	dirt.SetNameAndStatus( L( "Lens dirt" ), L( "Lens dirt effect on bright light sources" ) );
 	dirt.SetCoord( 260, 495 );
 
-	antiFirefly.SetNameAndStatus( L( "Anti-firefly" ), L( "Suppress high-energy specular firefly noise" ) );
-	antiFirefly.SetCoord( 260, 535 );
-
 	hudscale.SetNameAndStatus( L( "Auto scale HUD" ), L( "Automatically scale HUD to match screen resolution" ) );
-	hudscale.SetCoord( 260, 575 );
+	hudscale.SetCoord( 260, 535 );
 
 	muzzleFlash.SetNameAndStatus( L( "Muzzle flash" ), L( "Ray-traced dynamic light for weapon muzzle flashes" ) );
 	muzzleFlash.SetCoord( 600, 375 );
@@ -351,7 +347,6 @@ void CMenuVidOptions::_Init( void )
 	AddItem( volumetric );
 	AddItem( bloom );
 	AddItem( dirt );
-	AddItem( antiFirefly );
 	AddItem( detailtex );
 	AddItem( indirect2Bounces );
 	AddItem( waterWarp );
@@ -382,8 +377,6 @@ void CMenuVidOptions::_Init( void )
 	bloom.bUpdateImmediately = true;
 	dirt.LinkCvar( "rt_bloom_dirt_enable" );
 	dirt.bUpdateImmediately = true;
-	antiFirefly.LinkCvar( "rt_antifirefly" );
-	antiFirefly.bUpdateImmediately = true;
 	indirect2Bounces.LinkCvar( "rt_indir2bounces" );
 	indirect2Bounces.bUpdateImmediately = true;
 	waterWarp.LinkCvar( "rt_ef_water" );
@@ -445,7 +438,6 @@ void CMenuVidOptions::Reload()
 	upscaleMethod.SetInactive( !rt_active || (!fsr3_ok && !dlss_ok) );
 	upscaleQuality.SetGrayed( !rt_active || (!fsr3_ok && !dlss_ok) );
 	upscaleQuality.SetInactive( !rt_active || (!fsr3_ok && !dlss_ok) );
-	UpdateFrameGenStatus();
 	vintage.SetGrayed( !rt_active );
 	vintage.SetInactive( !rt_active );
 	vsync.SetGrayed( !rt_active );
@@ -462,8 +454,6 @@ void CMenuVidOptions::Reload()
 	bloom.SetInactive( !rt_active );
 	dirt.SetGrayed( !rt_active || !(int)EngFuncs::GetCvarFloat( "rt_bloom" ));
 	dirt.SetInactive( !rt_active );
-	antiFirefly.SetGrayed( !rt_active );
-	antiFirefly.SetInactive( !rt_active );
 	indirect2Bounces.SetGrayed( !rt_active );
 	indirect2Bounces.SetInactive( !rt_active );
 	waterWarp.SetGrayed( !rt_active );
@@ -472,6 +462,7 @@ void CMenuVidOptions::Reload()
 	denoiser.SetInactive( !rt_active );
 
 	CMenuFramework::Reload();
+	UpdateFrameGenStatus();
 }
 
 ADD_MENU( menu_vidoptions, CMenuVidOptions, UI_VidOptions_Menu );
