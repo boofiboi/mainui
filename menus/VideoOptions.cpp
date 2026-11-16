@@ -34,14 +34,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static const char *pUpscaleMethodNamesAll[] =
 {
 	L( "Off" ),
+#ifdef _WIN32
+	"AMD FSR4",
+#else
 	"AMD FSR3",
+#endif
 	"NVIDIA DLSS",
 };
 
 static const char *pUpscaleMethodNamesNoDlss[] =
 {
 	L( "Off" ),
+#ifdef _WIN32
+	"AMD FSR4",
+#else
 	"AMD FSR3",
+#endif
 };
 
 static CStringArrayModel upscaleMethodModelAll( pUpscaleMethodNamesAll, V_ARRAYSIZE( pUpscaleMethodNamesAll ) );
@@ -136,7 +144,7 @@ void CMenuVidOptions::_Init( void )
 	static bool s_inCvarWrite = false;
 
 	bool dlss_init_ok = (int)EngFuncs::GetCvarFloat( "_rt_dlss_available" ) != 0;
-	upscaleMethod.SetNameAndStatus( "Upscaler", L( "Upscaling technique (AMD FSR3 or NVIDIA DLSS)" ) );
+	upscaleMethod.SetNameAndStatus( "Upscaler", L( "Upscaling technique (AMD FSR or NVIDIA DLSS)" ) );
 	upscaleMethod.SetRect( 260, 265, 230, 32 );
 	upscaleMethod.SetCharSize( QM_SMALLFONT );
 	upscaleMethod.Setup( dlss_init_ok ? &upscaleMethodModelAll : &upscaleMethodModelNoDlss );
